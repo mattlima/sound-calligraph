@@ -1,0 +1,23 @@
+{
+  "name": "sound-calligraph",
+  "version": "0.0.0",
+  "authors": [
+    "Matt Lima <matt@3-tone.com>"
+  ],
+  "description": "Gesture-controlled sound sculptures",
+  "main": "index.html",
+  "moduleType": [],
+  "license": "MIT",
+  "homepage": "",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "mooog": "*",
+    "jquery": "~2.1.4"
+  }
+}
