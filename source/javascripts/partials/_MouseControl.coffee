@@ -4,17 +4,20 @@ class MouseControl
     @mouseactive = false
     @mousedown = false
     @mousedata =
-      last_action: new Date().getTime()
+      last_timestamp: new Date().getTime()
+      timestamp: new Date().getTime()
       lastX: 0
-      lastSampleX: 0
       lastY: 0
-      lastSampleY: 0
+      curX: 0
+      curY: 0
       velX: 0
       velY: 0
-      lastVelX: 0
-      lastVelY: 0
+      vel: 0
+      last_velX: 0
+      last_velY: 0
+      last_vel: 0
       velX_dX: 0
-      velY_dX: 0
+    @dX_decay = 1
     @cgraph =
       on_mousedown : $.noop
       on_mouseup : $.noop
@@ -26,61 +29,77 @@ class MouseControl
     $(document).on 'mouseleave', 'div.canvas', @mouseleave
     $(document).on 'mousedown', 'div.canvas', @mdown
     $(document).on 'mouseup', 'div.canvas', @mup
-    $(document).on 'mousemove', 'div.canvas', @throttle(@update_position, 50)
+    $(document).on 'mousemove', 'div.canvas', @update_mousedata
 
     @display =
       velX: $("#display #velX span.contain span")
       velY: $("#display #velY span.contain span")
+      vel: $("#display #vel span.contain span")
       xPos: $("#display #xPos span.val")
       yPos: $("#display #yPos span.val")
       velX_dX: $("#display #velX_dX span.contain span")
       velY_dX: $("#display #velY_dX span.contain span")
       mouseactive: $("#display #mouseactive span.val")
       mousedown: $("#display #mousedown span.val")
+    @pointer = $("div.pointer")
     @display_interval = setInterval(@update_display, 50)
-    @update_interval = setInterval(@update, 25)
+    @update_interval = setInterval(@update, 10)
 
   mouseenter: (e) =>
-    @last_action = new Date().getTime()
+    @pointer.removeClass 'hide'
+    @update_mousedata(e)
     @mouseactive = true
 
   mouseleave: (e) =>
+    @pointer.addClass 'hide'
+    @update_mousedata(e)
     @mouseactive = false
     if @mousedown
       @cgraph.on_mouseup(e)
       @mousedown = false
 
   mdown: (e) =>
+    @update_mousedata(e)
     @mousedown = true
     @cgraph.on_mousedown(e)
 
   mup: (e) =>
+    @update_mousedata(e)
     @mousedown = false
     @cgraph.on_mouseup(e)
 
   update: () =>
-    m = @mousedata
+    @mousedata.velX_dX -= @dX_decay
+    @mousedata.velX_dX = 0 unless @mousedata.velX_dX >= 0
     if @mouseactive and @mousedown
-      now = new Date().getTime()
-      elapsed = (now - m.last_action)
-      deltaX = Math.abs m.lastSampleX - m.lastX
-      deltaY = Math.abs m.lastSampleY - m.lastY
-      m.velX = deltaX/elapsed
-      m.velY = deltaY/elapsed
-      m.velX_dX = m.velX - m.last_velX
-      m.velY_dX = m.velY - m.last_velY
-      m.last_action = now
-      m.last_velX = m.velX
-      m.last_velY = m.velY
-      @cgraph.on_mousemove(m)
-    m.lastSampleX = m.lastX
-    m.lastSampleY = m.lastY
+      @cgraph.on_mousemove(@mousedata)
     null
 
-  update_position: (e) =>
+  update_mousedata: (e) =>
+    @mousedata.timestamp = new Date().getTime()
+    elapsed = @mousedata.timestamp - @mousedata.last_timestamp
+    @mousedata.curX = e.offsetX
+    @mousedata.curY = e.offsetY
+    @pointer.css({top:e.offsetY,left:e.offsetX})
+    deltaX = @mousedata.curX - @mousedata.lastX
+    deltaY = @mousedata.curY - @mousedata.lastY
+    @mousedata.velX = deltaX / elapsed
+    @mousedata.velY = deltaY / elapsed
+    @mousedata.last_vel = @mousedata.vel
+    @mousedata.vel = Math.sqrt(Math.pow(@mousedata.velX,2) + Math.pow(@mousedata.velY,2))
+    if @mousedata.velX_dX < 5
+      @mousedata.velX_dX += Math.abs(@mousedata.vel - @mousedata.last_vel)
+
+
+    #@mousedata.velX_dX = @mousedata.velX - @mousedata.last_velX
+    #@mousedata.velY_dX = @mousedata.velY - @mousedata.last_velY
+    #@mousedata.last_velX = @mousedata.velX
+    #@mousedata.last_velY = @mousedata.velY
+
     @mousedata.lastX = e.offsetX
     @mousedata.lastY = e.offsetY
-
+    @mousedata.last_timestamp = @mousedata.timestamp
+    null
 
 
   update_display: () =>
@@ -88,8 +107,9 @@ class MouseControl
     m = @mousedata
     d.velX.height(@scale_perc m.velX, 2)
     d.velY.height(@scale_perc m.velY, 2)
-    d.velX_dX.height(@scale_perc m.velX_dX, 3)
-    d.velY_dX.height(@scale_perc m.velY_dX, 3)
+    d.vel.height(@scale_perc m.vel, 2)
+    d.velX_dX.height(@scale_perc m.velX_dX, 5)
+    d.velY_dX.height(@scale_perc m.velY_dX, 5)
     d.xPos.text(@round_sig2 m.lastX)
     d.yPos.text(@round_sig2 m.lastY)
     d.mousedown.text(if @mousedown then 'true' else false)
