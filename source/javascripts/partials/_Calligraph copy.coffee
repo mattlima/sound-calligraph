@@ -37,7 +37,7 @@ class Calligraph
     @document.on 'mousemove', @update_mousedata
 
     @last_timeval = performance.now()
-    #requestAnimationFrame @animate
+    requestAnimationFrame @animate
 
   # constrains val to within inmin < val < inmax and then scales it to the interval outmin-outmax
   clamp: (val, inmin, inmax, outmin, outmax) ->
@@ -53,121 +53,33 @@ class Calligraph
     r
 
   pixi_init: () ->
-    imagePaths = ["images/small-white-line.png"]
-    useParticleContainer = false
-    config = {
-      "alpha":
-      	"start": 0.62
-      	"end": 0
-      "scale":
-      	"start": 0.25
-      	"end": 0.75
-      "color":
-      	"start": "fff191"
-      	"end": "ff622c"
-      "speed":
-      	"start": 200
-      	"end": 0
-      "startRotation":
-      	"min": 265
-      	"max": 275
-      "rotationSpeed":
-      	"min": -100
-      	"max": 150
-      "lifetime":
-      	"min": 0.1
-      	"max": 1.75
-      "blendMode": "normal"
-      "frequency": 0.01
-      "emitterLifetime": 0
-      "maxParticles": 1000
-      "pos":
-      	"x": 0
-      	"y": 0
-      "addAtBack": false
-      "spawnType": "circle"
-      "spawnCircle":
-      	"x": 0
-      	"y": 0
-      	"r": 10
-    }
+    @pixi.s = new PIXI.Container()
 
-
+    window_width = $(window).width()
+    @canvas_height =  0.66 * window_width
+    @canvas_width = window_width
     canvas = document.getElementById("canvas");
+    @pixi.r = PIXI.autoDetectRenderer(@canvas_width, @canvas_height, {view: canvas})
 
 
+    texture = PIXI.Texture.fromImage("/images/imgres.jpg")
+    #@pointer = new PIXI.Sprite(texture)
+    @pointer = new PIXI.Container()
 
 
-    ### var preMultAlpha = !!options.preMultAlpha;
-    		if(rendererOptions.transparent && !preMultAlpha)
-    			rendererOptions.transparent = "notMultiplied"; ###
+#     @pointer.anchor.x = 0.5
+#     @pointer.anchor.y = 0.5
 
-    @stage = new PIXI.Container()
-    @pixi.r = PIXI.autoDetectRenderer(canvas.width, canvas.height)
-    $(canvas).replaceWith @pixi.r.view
-    @canvas_height = $("canvas").height()
-    @canvas_width = $("canvas").width()
+    @pointer.position.x = 200
+    @pointer.position.y = 150
+
+    @pixi.s.addChild(@pointer)
 
 
-
+    @pixi.s.interactive = true
+    @pixi.s.mousedown = @on_mousedown
+    @pixi.s.mouseup = @on_mouseup
     @document.on 'mouseleave','canvas',@on_mouseup
-    @document.on 'mousedown','canvas',@on_mousedown
-    @document.on 'mouseup','canvas',@on_mouseup
-
-    window.onresize = (event) =>
-    	canvas.width = window.innerWidth
-    	canvas.height = window.innerHeight
-    	@pixi.r.resize canvas.width, canvas.height
-    	true
-
-    window.onresize()
-
-
-
-    urls = imagePaths.slice()
-    makeTextures = true
-
-
-
-    ###
-    			bg = new PIXI.Sprite(PIXI.Texture.fromImage("images/bg.png"));
-    			//bg is a 1px by 1px image
-    			bg.scale.x = canvas.width;
-    			bg.scale.y = canvas.height;
-    			bg.tint = 0x000000;
-    			stage.addChild(bg);
-    ###
-
-    #collect the textures, now that they are all loaded
-
-    art = []
-    art.push(PIXI.Texture.fromImage(imagePaths[i])) for path, i in imagePaths
-
-
-    if useParticleContainer
-      emitterContainer = new PIXI.ParticleContainer()
-      emitterContainer.setProperties
-        scale: true
-        position: true
-        rotation: true
-        uvs: true
-        alpha: true
-    else
-      @emitterContainer = new PIXI.Container()
-
-
-    @stage.addChild @emitterContainer
-    @emitter = new cloudkid.Emitter @emitterContainer, art, config
-
-
-
-    #Center on the stage
-    @emitter.updateOwnerPos(window.innerWidth / 2, window.innerHeight / 2)
-
-    requestAnimationFrame @animate
-
-
-
 
   update_mousedata: (e) =>
     elapsed = e.timeStamp - @mousedata.last_timestamp
@@ -191,29 +103,21 @@ class Calligraph
 
   animate: (timeval) =>
     elapsed = timeval - @last_timeval
-    @last_timeval = timeval
     #check that mouse has moved in last n milliseconds, if not,
     #trigger a fake mouse event so vel is zero
 
-#     if (Date.now() - @mousedata.last_timestamp) > 300
-#       #console.log "zeroing", @mousedata.last_timestamp
-#       @update_mousedata
-#         timeStamp: Date.now()
-#         offsetX: @mousedata.lastX
-#         offsetY: @mousedata.lastY
-
-
-    now = Date.now()
-
-    @emitter.update(elapsed * 0.001)
-
-
+    if (Date.now() - @mousedata.last_timestamp) > 300
+      #console.log "zeroing", @mousedata.last_timestamp
+      @update_mousedata
+        timeStamp: Date.now()
+        offsetX: @mousedata.lastX
+        offsetY: @mousedata.lastY
 
 
 
 
     #@pointer.rotation += 0.01
-    @pixi.r.render @stage
+    @pixi.r.render @pixi.s
     @on_mousemove(@mousedata, elapsed)
     requestAnimationFrame @animate
     null
@@ -262,17 +166,66 @@ class TC extends Calligraph
       feedback: 0.25
     @n = @m._nodes
 
-    @n.saw1.chain(@n.master)
-    @n.saw2.chain(@n.master)
-    @n.saw3.chain(@n.master)
+    #@n.saw1.chain(@n.master)
+    #@n.saw2.chain(@n.master)
+    #@n.saw3.chain(@n.master)
     #@n.comp.chain(@n.master)
 
 
+    @pixi.line_emitter = new cloudkid.Emitter(
+      @pointer
+      [PIXI.Texture.fromImage('/images/small-white-line.png')]
+      {
+        "alpha": {
+          "start": 0.8,
+          "end": 0.1
+        },
+        "scale": {
+          "start": 1,
+          "end": 0.3
+        },
+        "color": {
+          "start": "fb1010",
+          "end": "f5b830"
+        },
+        "speed": {
+          "start": 200,
+          "end": 100
+        },
+        "startRotation": {
+          "min": 0,
+          "max": 360
+        },
+        "rotationSpeed": {
+          "min": 0,
+          "max": 0
+        },
+        "lifetime": {
+          "min": 0.5,
+          "max": 0.5
+        },
+        "frequency": 0.008,
+        "emitterLifetime": 0.31,
+        "maxParticles": 1000,
+        "pos": {
+          "x": 0,
+          "y": 0
+        },
+        "addAtBack": false,
+        "spawnType": "circle",
+        "spawnCircle":
+          "x": 0,
+          "y": 0,
+          "r": 10
+      })
+    @pixi.line_emitter.emit = true
+    @pixi.line_emitter.resetPositionTracking()
     null
 
 
 
   on_mousedown: (e) =>
+    console.log 'start'
     @n.saw1.start()
     @n.saw2.start()
 #     @n.saw3.start()
@@ -285,16 +238,14 @@ class TC extends Calligraph
   on_mousemove: (data, elapsed) =>
 
 
-    @emitter.updateOwnerPos(data.lastX,data.lastY)
-    #@pixi.line_emitter.update(elapsed * 0.001);
-    #console.log "gain #{data.vel} to "+ @inertia(@clamp(data.vel, 0, 0.1, 0, 1))
+    @pixi.line_emitter.update(elapsed * 0.001);
+    #console.log "gain #{data.vel} to "+ @inertia(@clamp(data.vel, 0, 3, 0, 1))
     @n.master.param
       #gain: 0.2 + @clamp(data.velX, -2, 2, -0.3, 0.3)
-      gain: @inertia(@clamp(data.vel, 0, 1, 0, 1))
+      gain: @inertia(@clamp(data.vel, 0, 0.1, 0, 1))
       ramp:'expo'
       at: 0.1
       from_now: true
-
     @n.saw1.param
       frequency: @clamp(@canvas_height - data.lastY, 0, @canvas_height, 50, 250)
       ramp:'expo'
@@ -310,9 +261,8 @@ class TC extends Calligraph
       ramp:'expo'
       at: 1
       from_now: true
-
-    #@pointer.position.x = data.lastX
-    #@pointer.position.y = data.lastY
+    @pointer.position.x = data.lastX
+    @pointer.position.y = data.lastY
 
 
 

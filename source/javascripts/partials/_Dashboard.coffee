@@ -1,22 +1,22 @@
-class MouseControl
+class Dashboard
 
   constructor: () ->
     @mouseactive = false
     @mousedown = false
-    @mousedata =
-      last_timestamp: new Date().getTime()
-      timestamp: new Date().getTime()
-      lastX: 0
-      lastY: 0
-      curX: 0
-      curY: 0
-      velX: 0
-      velY: 0
-      vel: 0
-      last_velX: 0
-      last_velY: 0
-      last_vel: 0
-      velX_dX: 0
+#     @mousedata =
+#       last_timestamp: Date.now()
+#       timestamp: Date.now()
+#       lastX: 0
+#       lastY: 0
+#       curX: 0
+#       curY: 0
+#       velX: 0
+#       velY: 0
+#       vel: 0
+#       last_velX: 0
+#       last_velY: 0
+#       last_vel: 0
+#       velX_dX: 0
     @dX_decay = 1
     @cgraph =
       on_mousedown : $.noop
@@ -25,11 +25,11 @@ class MouseControl
     $(document).ready( @init )
 
   init: () =>
-    $(document).on 'mouseenter', 'div.canvas', @mouseenter
-    $(document).on 'mouseleave', 'div.canvas', @mouseleave
-    $(document).on 'mousedown', 'div.canvas', @mdown
-    $(document).on 'mouseup', 'div.canvas', @mup
-    $(document).on 'mousemove', 'div.canvas', @update_mousedata
+    $(document).on 'mouseenter', 'canvas', @mouseenter
+    $(document).on 'mouseleave', 'canvas', @mouseleave
+    $(document).on 'mousedown', 'canvas', @mdown
+    $(document).on 'mouseup', 'canvas', @mup
+    $(document).on 'mousemove', 'canvas', @update_mousedata
 
     @display =
       velX: $("#display #velX span.contain span")
@@ -41,17 +41,14 @@ class MouseControl
       velY_dX: $("#display #velY_dX span.contain span")
       mouseactive: $("#display #mouseactive span.val")
       mousedown: $("#display #mousedown span.val")
-    @pointer = $("div.pointer")
     @display_interval = setInterval(@update_display, 50)
     @update_interval = setInterval(@update, 10)
 
   mouseenter: (e) =>
-    @pointer.removeClass 'hide'
     @update_mousedata(e)
     @mouseactive = true
 
   mouseleave: (e) =>
-    @pointer.addClass 'hide'
     @update_mousedata(e)
     @mouseactive = false
     if @mousedown
@@ -76,11 +73,10 @@ class MouseControl
     null
 
   update_mousedata: (e) =>
-    @mousedata.timestamp = new Date().getTime()
+    @mousedata.timestamp = Date.now()
     elapsed = @mousedata.timestamp - @mousedata.last_timestamp
     @mousedata.curX = e.offsetX
     @mousedata.curY = e.offsetY
-    @pointer.css({top:e.offsetY,left:e.offsetX})
     deltaX = @mousedata.curX - @mousedata.lastX
     deltaY = @mousedata.curY - @mousedata.lastY
     @mousedata.velX = deltaX / elapsed
@@ -90,11 +86,6 @@ class MouseControl
     if @mousedata.velX_dX < 5
       @mousedata.velX_dX += Math.abs(@mousedata.vel - @mousedata.last_vel)
 
-
-    #@mousedata.velX_dX = @mousedata.velX - @mousedata.last_velX
-    #@mousedata.velY_dX = @mousedata.velY - @mousedata.last_velY
-    #@mousedata.last_velX = @mousedata.velX
-    #@mousedata.last_velY = @mousedata.velY
 
     @mousedata.lastX = e.offsetX
     @mousedata.lastY = e.offsetY
@@ -136,4 +127,4 @@ class MouseControl
     o.setup.bind o
 
 
-window.MouseControl = MouseControl
+window.Dashboard = Dashboard

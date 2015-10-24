@@ -1,3 +1,13 @@
 $(document).ready ()->
-	window.__mc = new MouseControl
-	__mc.start_calligraph( new Calligraphs.TC )
+  window.__c = new Calligraphs.TC
+
+
+
+
+
+###
+Calligraph class creates PIXI canvas
+--> PIXI.js canvas object dispatches mousedown, mousemove, mouseup, mouseupoutside
+--> Calligraph class mouseData is updated on these events
+--> Calligraph subclass performs sound param updates via requestAnimationFrame
+###
