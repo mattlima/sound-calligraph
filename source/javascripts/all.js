@@ -4,7 +4,8 @@
 //= require ./bower_components/mooog-extras/dist/SampleAndHold.js
 //= require ./bower_components/pixi.js/bin/pixi.js
 //= require ./bower_components/pixi-particles/dist/pixi-particles.min.js
+//= require ./partials/_Dashboard
+//= require ./partials/_Calligraph
 //= require ./_master
-//= require_tree ./partials
 
 
