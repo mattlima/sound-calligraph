@@ -1,0 +1,5 @@
+#!/bin/bash
+v=$1
+middleman build
+mv build ./versions/$v
+nano ./versions/$v/README.txt

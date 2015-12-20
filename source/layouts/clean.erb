@@ -9,7 +9,9 @@
     <!-- Use title if it's in the page YAML frontmatter -->
     <title><%= current_page.data.title || "The Middleman" %></title>
 
-    <%= stylesheet_link_tag "normalize", "all" %>
+
+    <%= yield_content :styles if content_for? :styles %>
+    <%= yield_content :scripts if content_for? :scripts %>
 
   </head>
 

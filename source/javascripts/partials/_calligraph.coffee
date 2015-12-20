@@ -42,7 +42,7 @@ class Calligraph
     @last_mouse_update = performance.now()
 
     # for now, set up dashboard automatically
-    #@dashboard = new Dashboard(@mousedata)
+    @dashboard = new Dashboard(@)
 
 
 
@@ -68,7 +68,6 @@ class Calligraph
     @last_mouse_update = now
     @mousedata.curX = e.offsetX
     @mousedata.curY = e.offsetY
-    return false
     deltaX = @mousedata.curX - @mousedata.lastX
     deltaY = @mousedata.curY - @mousedata.lastY
     @mousedata.velX = deltaX / elapsed
@@ -77,6 +76,10 @@ class Calligraph
     @mousedata.vel = Math.sqrt(Math.pow(@mousedata.velX,2) + Math.pow(@mousedata.velY,2))
     @mousedata.lastX = e.offsetX
     @mousedata.lastY = e.offsetY
+
+    #supplied by subclass
+    @on_mousemove(@mousedata)
+
     null
 
 
@@ -93,17 +96,17 @@ class TC extends Calligraph
     @m.node
       id: 'saw1'
       node_type: 'Oscillator'
-      type: 'square'
+      type: 'sawtooth'
       frequency: 100
     @m.node
       id: 'saw2'
       node_type: 'Oscillator'
-      type: 'square'
+      type: 'sawtooth'
       frequency: 100
     @m.node
       id: 'saw3'
       node_type: 'Oscillator'
-      type: 'square'
+      type: 'sawtooth'
       frequency: 100
     @m.node
       id: 'comp'
@@ -115,6 +118,10 @@ class TC extends Calligraph
       attack: 0
       release: 0.25
     @m.node
+      id: 'verb'
+      node_type: 'Convolver'
+      buffer_source_file: 'sound/impulse-responses/st-andrews-church-ortf-shaped.wav'
+    @m.node
       id: 'master'
       node_type: 'Gain'
       gain: 0
@@ -123,39 +130,61 @@ class TC extends Calligraph
       node_type: 'Delay'
       delayTime: 0.5
       feedback: 0.25
+
     @n = @m._nodes
 
     @n.saw1.chain(@n.master)
     @n.saw2.chain(@n.master)
     @n.saw3.chain(@n.master)
+    @n.master.connect(@n.verb)
     #@n.comp.chain(@n.master)
 
 
     @pixi_init()
+
+    @velocity = 0
+    @velocity_loss = 0.01
+    @velocity_max = 4
+
+
 
     null
 
 
 
   on_mousedown: (e) =>
+    @last_click = performance.now()
+    @emitter.emit = true
     @n.saw1.start()
     @n.saw2.start()
-#     @n.saw3.start()
+    @n.saw3.start()
 
   on_mouseup: (e) =>
+    @emitter.emit = false
     @n.saw1.stop()
     @n.saw2.stop()
-#     @n.saw3.stop()
+    @n.saw3.stop()
 
-  on_mousemove: (data, elapsed) =>
+  on_mousemove: (m)->
+    @velocity = Math.min(@velocity + m.vel, @velocity_max)
 
+  on_animate: (data, elapsed) =>
+
+    duration = performance.now() - @last_click
+    @emitter.maxLifetime = Math.min(8, @velocity)
+    #looks like alpha is actually on a modulo
+    @emitter.startAlpha = (@velocity + 0.0001) / 0.5
+    r = @clamp((@canvas_height * 0.8) - data.lastY, 0, @canvas_height, 70, 255)
+    g = @clamp(0, (@canvas_height * 0.8) - data.lastY, @canvas_height, 70, 255)
+
+    @emitter.startColor = [r, g, 150]
 
     @emitter.updateOwnerPos(data.curX,data.curY)
     #@pixi.line_emitter.update(elapsed * 0.001);
     #console.log "gain #{data.vel} to "+ (@clamp(data.vel, 0, 0.1, 0, 1))
     @n.master.param
       #gain: 0.2 + @clamp(data.velX, -2, 2, -0.3, 0.3)
-      gain: @clamp(data.vel, 0, 1, 0, 1)
+      gain: @clamp(@velocity, 0, 5, 0, 1)
       ramp:'expo'
       at: 0.1
       from_now: true
@@ -191,17 +220,17 @@ class TC extends Calligraph
       	"start": 0.25
       	"end": 0.75
       "color":
-      	"start": "fff191"
-      	"end": "ff622c"
+      	"start": "FF0000"
+      	"end": "000000"
       "speed":
       	"start": 200
       	"end": 0
       "startRotation":
-      	"min": 265
-      	"max": 275
+      	"min": 0
+      	"max": 360
       "rotationSpeed":
-      	"min": -100
-      	"max": 150
+      	"min": 0
+      	"max": 1
       "lifetime":
       	"min": 0.1
       	"max": 1.75
@@ -215,9 +244,10 @@ class TC extends Calligraph
       "addAtBack": false
       "spawnType": "circle"
       "spawnCircle":
-      	"x": 0
-      	"y": 0
-      	"r": 10
+        x: 0
+        y: 0
+        r: 10
+
     }
 
 
@@ -284,7 +314,7 @@ class TC extends Calligraph
     @stage.addChild @emitterContainer
     @emitter = new cloudkid.Emitter @emitterContainer, art, config
 
-
+    console.log @emitter
 
     #Center on the stage
     @emitter.updateOwnerPos(window.innerWidth / 2, window.innerHeight / 2)
@@ -296,6 +326,12 @@ class TC extends Calligraph
   animate: (timeval) =>
     elapsed = timeval - @last_timeval
     @last_timeval = timeval
+    #console.log "loss is #{@velocity_loss * elapsed}"
+
+    #console.log "vel was #{@velocity}"
+    @velocity = Math.max(0, @velocity - (@velocity_loss * elapsed))
+
+    #console.log "vel is now #{@velocity}"
     #check that mouse has moved in last n milliseconds, if not,
     #trigger a fake mouse event so vel is zero
 
@@ -317,7 +353,7 @@ class TC extends Calligraph
 
     #@pointer.rotation += 0.01
     @pixi.r.render @stage
-    @on_mousemove(@mousedata, elapsed)
+    @on_animate(@mousedata, elapsed)
     requestAnimationFrame @animate
     null
 
@@ -325,4 +361,4 @@ class TC extends Calligraph
 
 window.Calligraphs =
   TC: TC
-  T: T
+

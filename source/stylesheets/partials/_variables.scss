@@ -1,0 +1,9 @@
+$primary-color-dark: #29a329;
+$primary-color-medium: #b0d0b0;
+$primary-color-light: #e4ebe4;
+
+@mixin hover-dark(){
+  &:hover, &:focus{
+      background-color: $primary-color-dark;
+  }
+}

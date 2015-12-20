@@ -1,7 +1,8 @@
 class Dashboard
 
-  constructor: (mousedata) ->
-    @mousedata = mousedata
+  constructor: (calli) ->
+    @calli = calli
+    @mousedata = calli.mousedata
     @mouseactive = false
     @mousedown = false
     $(document).ready( @init )
@@ -22,6 +23,7 @@ class Dashboard
       velY_dX: $("#display #velY_dX span.contain span")
       mouseactive: $("#display #mouseactive span.val")
       mousedown: $("#display #mousedown span.val")
+      padded_vel: $("#display #padded_vel span.val")
     @display_interval = setInterval(@update_display, 200)
 
 
@@ -53,6 +55,7 @@ class Dashboard
     d.yPos.text(@round_sig2 m.lastY)
     d.mousedown.text(if @mousedown then 'true' else false)
     d.mouseactive.text(if @mouseactive then 'true' else false)
+    d.padded_vel.text(@round_sig2 @calli.velocity)
 
   round_sig2: (n) ->
     Math.round(n * 100) / 100
