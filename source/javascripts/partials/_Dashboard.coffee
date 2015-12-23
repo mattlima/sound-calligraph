@@ -5,6 +5,7 @@ class Dashboard
     @mousedata = calli.mousedata
     @mouseactive = false
     @mousedown = false
+    @key_callbacks = {}
     $(document).ready( @init )
 
   init: () =>
@@ -12,6 +13,7 @@ class Dashboard
     $(document).on 'mouseleave', 'canvas', @mouseleave
     $(document).on 'mousedown', 'canvas', @mdown
     $(document).on 'mouseup', 'canvas', @mup
+    $(document).on 'keypress', @key
 
     @display =
       velX: $("#display #velX span.contain span")
@@ -25,6 +27,16 @@ class Dashboard
       mousedown: $("#display #mousedown span.val")
       padded_vel: $("#display #padded_vel span.val")
     @display_interval = setInterval(@update_display, 200)
+
+  key: (e) =>
+    switch e.which
+      when 113 #q
+        @calli.pixi.r.destroy()
+      else
+        @key_callbacks[e.which]() if @key_callbacks[e.which]?
+
+  add_key: (f, k) ->
+    @key_callbacks[k] = f.bind @calli
 
 
   mouseenter: (e) =>

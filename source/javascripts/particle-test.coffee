@@ -1,162 +1,134 @@
-
-imagePaths = ["images/small-white-line.png"]
-useParticleContainer = false
-config = {
-  "alpha":
-  	"start": 0.62
-  	"end": 0
-  "scale":
-  	"start": 0.25
-  	"end": 0.75
-  "color":
-  	"start": "fff191"
-  	"end": "ff622c"
-  "speed":
-  	"start": 200
-  	"end": 0
-  "startRotation":
-  	"min": 265
-  	"max": 275
-  "rotationSpeed":
-  	"min": -100
-  	"max": 150
-  "lifetime":
-  	"min": 0.1
-  	"max": 1.75
-  "blendMode": "normal"
-  "frequency": 0.1
-  "emitterLifetime": 0
-  "maxParticles": 1000
-  "pos":
-  	"x": 0
-  	"y": 0
-  "addAtBack": false
-  "spawnType": "circle"
-  "spawnCircle":
-  	"x": 0
-  	"y": 0
-  	"r": 100
-}
+#
+#
+# Not sure why but removing the filter on the second stage made this work.
+#
+#
+#
+#
 
 
-canvas = document.getElementById("stage");
+class FC
+  constructor: ()->
+    @canvas = $("#canvas")
+    @pixi = {}
+    renderer_config = {
+      "clearBeforeRender": true
+      "preserveDrawingBuffer": true
+    }
+    STAGE_HEIGHT = 500
+    STAGE_WIDTH = 500
+
+    @pixi.r = PIXI.autoDetectRenderer(STAGE_WIDTH * 2, STAGE_HEIGHT, renderer_config)
 
 
-rendererOptions =
-  view: canvas
+    $(@canvas).replaceWith @pixi.r.view
 
-### var preMultAlpha = !!options.preMultAlpha;
-		if(rendererOptions.transparent && !preMultAlpha)
-			rendererOptions.transparent = "notMultiplied"; ###
-
-stage = new PIXI.Container()
-emitter = null
-renderer = PIXI.autoDetectRenderer(canvas.width, canvas.height, rendererOptions)
+    @stage = new PIXI.Container()
 
 
 
+    # stage 1 is where stuff happens, left over from
+    @stage1 = new PIXI.Container()
+    @stage2 = new PIXI.Container()
+    @stage1.height = STAGE_HEIGHT
+    @stage2.height = STAGE_HEIGHT
+    @stage1.blendMode = 'screen'
+    @stage2.blendMode = 'screen'
+    @stage1.width = STAGE_WIDTH
+    @stage2.width = STAGE_WIDTH
+    @stage2.position.x = STAGE_WIDTH
+    @stage.addChild @stage1
+    @stage.addChild @stage2
+
+    @stage1.interactive = true
+    @stage1.click = @moveSprite
+
+    #capturing the clicks seems to require a sprite
+    @capture = new PIXI.Sprite()
+    @capture.width = STAGE_WIDTH
+    @capture.height = STAGE_HEIGHT
+    @stage1.addChild @capture
+
+
+    @sp = new PIXI.Sprite()
+    @sp.width=50
+    @sp.height=50
+    @sp.texture = new PIXI.Texture.fromImage("/images/imgres.jpg")
+    @stage1.addChild @sp
+
+    #define two renderTextures that will round-robin for a recursive texture effect
+    @renderTexture1 = new PIXI.RenderTexture(@pixi.r,STAGE_WIDTH,STAGE_HEIGHT)
+    @renderTexture2 = new PIXI.RenderTexture(@pixi.r,STAGE_WIDTH,STAGE_HEIGHT)
+    currentTexture = @renderTexture1
+    @capture.texture = currentTexture
+    @capture.filters = [
+      new PIXI.filters.BlurFilter(10)
+    ]
+
+    #this is controlled by a button
+    $("#tran1").click @render_1_to_2
+
+    #the bounceback will target @capture since that covers all of stage1
+    $("#tran2").click @render_2_to_1
+
+    #see the function
+    $("#tran3").click ()=>
+      console.log @white_pix_per @renderTexture1.getPixels()
+
+
+#     window.filt = new PIXI.filters.BlurFilter()
+#     window.filt.blur = 10
+#     @stage1.filters = [window.filt]
+#
+#     window.filt2 = new PIXI.filters.BlurFilter()
+#     window.filt2.blur = 10
+    #@stage2.filters = [window.filt2]
+
+
+    requestAnimationFrame @animate
+
+  render_toggle: false
+
+  moveSprite: (e) =>
+    @sp.position = {x: e.data.global.x, y: e.data.global.y }
+
+  render_1_to_2: ()=>
+    @renderTexture2.render @stage1, false, true
+
+  render_2_to_1: ()=>
+    @renderTexture1.render @stage2
+
+  scale = 1.0
+
+  # flips @renderTexture1 and 2, re-renders 1 and makes it the texture of @capture
+  render_round_robin: ()=>
+    temp = @renderTexture1
+    @renderTexture1 = @renderTexture2
+    @renderTexture2 = temp
+    @capture.scale.x = @capture.scale.y = 1.005
+    @capture.alpha = 0.9
+    @renderTexture1.render @stage, false, true
+    @capture.scale.x = @capture.scale.y = 1.0
+    @capture.alpha = 1.0
+    @capture.texture = @renderTexture1
+
+
+  animate: ()=>
+    requestAnimationFrame @animate
+    @render_round_robin()
+#    if(render_toggle = !render_toggle)
+#      @render_2_to_1()
+#    else
+#      @render_1_to_2()
+
+    @pixi.r.render @stage
+
+  white_pix_per: (pixdata) ->
+    whites = 0
+    whites += 1 for i in pixdata when i is 255
+    whites
 
 
 
-window.onresize = (event) ->
-	canvas.width = window.innerWidth
-	canvas.height = window.innerHeight
-	renderer.resize canvas.width, canvas.height
-	true
-
-window.onresize()
-
-
-
-urls = imagePaths.slice()
-makeTextures = true
-
-
-
-###
-			bg = new PIXI.Sprite(PIXI.Texture.fromImage("images/bg.png"));
-			//bg is a 1px by 1px image
-			bg.scale.x = canvas.width;
-			bg.scale.y = canvas.height;
-			bg.tint = 0x000000;
-			stage.addChild(bg);
-###
-
-#collect the textures, now that they are all loaded
-
-art = []
-art.push(PIXI.Texture.fromImage(imagePaths[i])) for path, i in imagePaths
-
-
-if useParticleContainer
-  emitterContainer = new PIXI.ParticleContainer()
-  emitterContainer.setProperties
-    scale: true
-    position: true
-    rotation: true
-    uvs: true
-    alpha: true
-else
-  emitterContainer = new PIXI.Container()
-
-
-stage.addChild emitterContainer
-emitter = new cloudkid.Emitter emitterContainer, art, config
-
-###
-			if(type == "path")
-				emitter.particleConstructor = cloudkid.PathParticle;
-			else if(type == "anim")
-				emitter.particleConstructor = cloudkid.AnimatedParticle;
-###
-
-#Center on the stage
-emitter.updateOwnerPos(window.innerWidth / 2, window.innerHeight / 2)
-
-#Click on the canvas to trigger
-###
-			canvas.addEventListener('mouseup', function(e){
-				if(!emitter) return;
-				emitter.emit = true;
-				emitter.resetPositionTracking();
-				emitter.updateOwnerPos(e.offsetX || e.layerX, e.offsetY || e.layerY);
-			});
-###
-
-
-
-elapsed = Date.now()
-updateId = 0
-
-
-update = () ->
-
-  #Update the next frame
-  updateId = requestAnimationFrame(update);
-
-  now = Date.now()
-
-  emitter.update((now - elapsed) * 0.001)
-
-  elapsed = now
-
-  renderer.render stage
-
-
-update()
-
-###
-			window.destroyEmitter = function()
-			{
-				emitter.destroy();
-				emitter = null;
-				window.destroyEmitter = null;
-				cancelAnimationFrame(updateId);
-
-				renderer.render(stage);
-			};
-###
-
-
-
-
+$(document).ready ()->
+  window.FC = new FC()

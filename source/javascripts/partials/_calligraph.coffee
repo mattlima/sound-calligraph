@@ -14,11 +14,8 @@ class Calligraph
 
   constructor: () ->
 
-    #DOM
+    #retain useful DOM refs
     @document = $(document)
-    @canvas = $("#canvas")
-    @canvas_width = @canvas.width()
-    @canvas_height = @canvas.height()
 
 
     # initialize libraries
@@ -42,16 +39,13 @@ class Calligraph
     @last_mouse_update = performance.now()
 
     # for now, set up dashboard automatically
-    @dashboard = new Dashboard(@)
+    @dashboard = new Dashboard(this)
 
-
-
+    # keep mousedata current for inheriting classes
     @document.on 'mousemove', @update_mousedata
 
-    # The subclass-specific init function
+    # The init function is supplied by the inheriting class
     @init()
-
-    #requestAnimationFrame @animate
 
 
   # constrains val to within inmin < val < inmax and then scales it to the interval outmin-outmax
@@ -83,6 +77,49 @@ class Calligraph
     null
 
 
+  #
+  #
+  # The stage is always used so it is managed here to take care of resizes, etc.
+  #
+  #
+  pixi_init: (renderer_config)=>
+    @pixi = {}
+    @pixi.r = PIXI.autoDetectRenderer(@get_canvas_width(), @get_canvas_height(), renderer_config)
+    @canvas = @pixi.r.view
+    $('body').prepend @pixi.r.view
+
+
+    @stage = new PIXI.Container()
+
+
+    @document.on 'mouseleave', 'canvas', @on_mouseup
+    @document.on 'mousedown', 'canvas', @on_mousedown
+    @document.on 'mouseup', 'canvas', @on_mouseup
+
+    window.onresize = (event) =>
+      #canvas.width = window.innerWidth
+      #canvas.height = window.innerHeight
+      @pixi.r.resize @get_canvas_width(), @get_canvas_height()
+      @canvas_height = @get_canvas_height()
+      @canvas_width = @get_canvas_width()
+      true
+
+    window.onresize()
+    null
+
+  #
+  #
+  # Todo: move constants, add check for presence of dash
+  #
+  #
+  get_canvas_height: ()->
+    DASH_HEIGHT = 120
+    window.innerHeight - DASH_HEIGHT
+
+  get_canvas_width: ()->
+    window.innerWidth
+
+
   null
 
 
@@ -92,7 +129,19 @@ class TC extends Calligraph
     super
 
   init: ()->
+    #hello!
     console.log 'Calligraph "Test" init'
+
+
+    #see Calligraph for the actual pixi_init function
+    renderer_config = {
+      "clearBeforeRender": true
+      "preserveDrawingBuffer": true
+    }
+    @pixi_init renderer_config
+
+    @pixi_begin()
+
     @m.node
       id: 'saw1'
       node_type: 'Oscillator'
@@ -140,7 +189,6 @@ class TC extends Calligraph
     #@n.comp.chain(@n.master)
 
 
-    @pixi_init()
 
     @velocity = 0
     @velocity_loss = 0.01
@@ -173,18 +221,19 @@ class TC extends Calligraph
     duration = performance.now() - @last_click
     @emitter.maxLifetime = Math.min(8, @velocity)
     #looks like alpha is actually on a modulo
-    @emitter.startAlpha = (@velocity + 0.0001) / 0.5
+    @emitter.startAlpha = (@velocity + 0.0001) / 3.5
     r = @clamp((@canvas_height * 0.8) - data.lastY, 0, @canvas_height, 70, 255)
     g = @clamp(0, (@canvas_height * 0.8) - data.lastY, @canvas_height, 70, 255)
 
     @emitter.startColor = [r, g, 150]
+    @emitter.endColor = [r, g, 150]
 
     @emitter.updateOwnerPos(data.curX,data.curY)
     #@pixi.line_emitter.update(elapsed * 0.001);
     #console.log "gain #{data.vel} to "+ (@clamp(data.vel, 0, 0.1, 0, 1))
     @n.master.param
       #gain: 0.2 + @clamp(data.velX, -2, 2, -0.3, 0.3)
-      gain: @clamp(@velocity, 0, 5, 0, 1)
+      gain: @clamp(@velocity, 0, 5, 0, 0.5)
       ramp:'expo'
       at: 0.1
       from_now: true
@@ -208,11 +257,12 @@ class TC extends Calligraph
     #@pointer.position.x = data.lastX
     #@pointer.position.y = data.lastY
 
-  pixi_init: () ->
-    @pixi = {}
+  pixi_begin: () ->
+
     imagePaths = ["images/small-white-line.png"]
     useParticleContainer = false
-    config = {
+
+    particle_config = {
       "alpha":
       	"start": 0.62
       	"end": 0
@@ -234,10 +284,10 @@ class TC extends Calligraph
       "lifetime":
       	"min": 0.1
       	"max": 1.75
-      "blendMode": "normal"
-      "frequency": 0.01
+      #"blendMode": "SCREEN"
+      "frequency": 0.005
       "emitterLifetime": 0
-      "maxParticles": 1000
+      "maxParticles": 2000
       "pos":
       	"x": 0
       	"y": 0
@@ -251,31 +301,35 @@ class TC extends Calligraph
     }
 
 
-    canvas = document.getElementById("canvas");
 
-    ### var preMultAlpha = !!options.preMultAlpha;
-    		if(rendererOptions.transparent && !preMultAlpha)
-    			rendererOptions.transparent = "notMultiplied"; ###
+    #the recursive filter requires a base sprite to render into
+    @capture = new PIXI.Sprite()
+    @capture.width = @canvas_width
+    @capture.height = @canvas_height
+    @stage.addChild @capture
 
-    @stage = new PIXI.Container()
-    @pixi.r = PIXI.autoDetectRenderer(canvas.width, canvas.height)
-    $(canvas).replaceWith @pixi.r.view
-    @canvas_height = $("canvas").height()
-    @canvas_width = $("canvas").width()
+    #these two RenderTextures will round-robin to enable the recursive filtering effects
+    @renderTexture1 = new PIXI.RenderTexture(@pixi.r, @canvas_width, @canvas_height)
+    @renderTexture2 = new PIXI.RenderTexture(@pixi.r, @canvas_width, @canvas_height)
+    currentTexture = @renderTexture1
+    @capture.texture = currentTexture
+    blur = new PIXI.filters.BlurFilter()
+    blur.blur = 5
+    bloom = new PIXI.filters.BloomFilter()
+    bloom.blur = 1
+    noise = new PIXI.filters.NoiseFilter()
+    noise.noise = -0.1
+    #bd = new PIXI.filters.BlurDirFilter(0,15)
+    #bd.passes = 4
+    @capture.filters = [
+      #new PIXI.filters.BloomFilter()
+      #new PIXI.filters.ConvolutionFilter([0,0,0,0,1.1,0,0,0,0], window.innerWidth, window.innerHeight  )
+      blur
+      #noise
+      #bd
+      bloom
+    ]
 
-
-
-    @document.on 'mouseleave','canvas',@on_mouseup
-    @document.on 'mousedown','canvas',@on_mousedown
-    @document.on 'mouseup','canvas',@on_mouseup
-
-    window.onresize = (event) =>
-    	canvas.width = window.innerWidth
-    	canvas.height = window.innerHeight
-    	@pixi.r.resize canvas.width, canvas.height
-    	true
-
-    window.onresize()
 
 
 
@@ -312,20 +366,52 @@ class TC extends Calligraph
 
 
     @stage.addChild @emitterContainer
-    @emitter = new cloudkid.Emitter @emitterContainer, art, config
+
+    #@graphics = new PIXI.Graphics()
+    #@graphics.beginFill(0x000000, 0.001)
+    #@graphics.drawRect(0, 0, window.innerWidth, window.innerHeight)
+    #
+    #@stage.addChild @graphics
+
+    @renderTexture = new PIXI.RenderTexture(@pixi.r, window.innerWidth, window.innerHeight)
+    @t_sprite = new PIXI.Sprite()
+    @t_sprite.width = 200
+    @t_sprite.height = 200
+    #@t_sprite.texture = new PIXI.Texture.fromImage('/images/imgres.jpg')
+
+    @stage.addChild @t_sprite
+
+    #window.blurFilter = new PIXI.filters.ConvolutionFilter([1.1, 2.1, 0.1, 1.1, 0.1, 0.1, 0.1, 0.1, 1.1], window.innerWidth, window.innerHeight  )
+
+    #window.blurFilter = new PIXI.filters.BloomFilter()
+
+
+    @emitter = new cloudkid.Emitter @emitterContainer, art, particle_config
 
     console.log @emitter
+    @dashboard.add_key @white_pix_per, 109
 
     #Center on the stage
     @emitter.updateOwnerPos(window.innerWidth / 2, window.innerHeight / 2)
 
+    #@on_mouseup()
+
+    #clean this experiment
+    @framerate_val = $("#framerate .val")
+    @capture_alpha_val = $("#capture_alpha .val")
+    @capture_alpha = 0.7
+    @capture_alpha_val.text( @capture_alpha )
+    @total_frames = 0 #ticker for white pixel eval
     requestAnimationFrame @animate
 
 
 
   animate: (timeval) =>
     elapsed = timeval - @last_timeval
+    @framerate_val.text( Math.round( 1000 / elapsed ) )
+    @white_pix_per.call this unless( @total_frames++ % 15 )
     @last_timeval = timeval
+    @render_round_robin()
     #console.log "loss is #{@velocity_loss * elapsed}"
 
     #console.log "vel was #{@velocity}"
@@ -346,16 +432,47 @@ class TC extends Calligraph
 
     @emitter.update(elapsed * 0.001)
 
-
-
-
-
-
     #@pointer.rotation += 0.01
     @pixi.r.render @stage
     @on_animate(@mousedata, elapsed)
     requestAnimationFrame @animate
     null
+
+
+  # flips @renderTexture1 and 2, re-renders 1 and makes it the texture of @capture, which is then scaled up
+  # todo: incorporate into Calligraph class
+  render_round_robin: ()=>
+    temp = @renderTexture1
+    @renderTexture1 = @renderTexture2
+    @renderTexture2 = temp
+    #@capture.scale.x = @capture.scale.y = 1.005
+    @capture.alpha = @capture_alpha
+    @renderTexture1.render @stage, false, true
+    #@capture.scale.x = @capture.scale.y = 1.0
+    @capture.alpha = 1.0
+    @capture.texture = @renderTexture1
+
+
+  #
+  #
+  # Calculates the percentage of the canvas that is white (from the bloom)
+  #
+  #
+  white_pix_per: () ->
+    _then = performance.now()
+    skip = 256
+    pixdata = @renderTexture1.getPixels()
+    whites = 0
+    calls = 0
+    for i in [0..pixdata.length] by (4 * skip)
+      whites += 1 if pixdata[i] is 255 and pixdata[i+1] is 255 and pixdata[i+2] is 255
+      calls += 1
+    ratio = whites/calls
+    perc = Math.round( ratio * 100 )
+    @capture_alpha = 6.75 - (ratio * 2)
+    @capture_alpha_val.text( @capture_alpha )
+    $("#white_pix .val").text( "#{perc}%")
+
 
 
 
