@@ -1,147 +1,23 @@
-###
-
-  Calligraph common module
-
-  Responsibilities:
-    Hold DOM references
-    Initialize Mooog
-    Keep mousedata object updated
-    Call subclass init
-    Provide utility functions
-
-###
-class Calligraph
-
-  constructor: () ->
-
-    #retain useful DOM refs
-    @document = $(document)
-
-
-    # initialize libraries
-    @m = new Mooog
-
-
-    #Initialize mouse information
-    @mousedata =
-      lastX: 0
-      lastY: 0
-      curX: 0
-      curY: 0
-      velX: 0
-      velY: 0
-      vel: 0
-      last_velX: 0
-      last_velY: 0
-      last_vel: 0
-      #velX_dX: 0
-    @last_timeval = performance.now()
-    @last_mouse_update = performance.now()
-
-    # for now, set up dashboard automatically
-    @dashboard = new Dashboard(this)
-
-    # keep mousedata current for inheriting classes
-    @document.on 'mousemove', @update_mousedata
-
-    # The init function is supplied by the inheriting class
-    @init()
-
-
-  # constrains val to within inmin < val < inmax and then scales it to the interval outmin-outmax
-  clamp: (val, inmin, inmax, outmin, outmax) ->
-    val = inmin if val < inmin
-    val = inmax if val > inmax
-    ((val - inmin) / (inmax - inmin)) * (outmax - outmin) + outmin
-
-
-
-  update_mousedata: (e) =>
-    now = performance.now()
-    elapsed = now - @last_mouse_update
-    @last_mouse_update = now
-    @mousedata.curX = e.offsetX
-    @mousedata.curY = e.offsetY
-    deltaX = @mousedata.curX - @mousedata.lastX
-    deltaY = @mousedata.curY - @mousedata.lastY
-    @mousedata.velX = deltaX / elapsed
-    @mousedata.velY = deltaY / elapsed
-    @mousedata.last_vel = @mousedata.vel
-    @mousedata.vel = Math.sqrt(Math.pow(@mousedata.velX,2) + Math.pow(@mousedata.velY,2))
-    @mousedata.lastX = e.offsetX
-    @mousedata.lastY = e.offsetY
-
-    #supplied by subclass
-    @on_mousemove(@mousedata)
-
-    null
-
-
-  #
-  #
-  # The stage is always used so it is managed here to take care of resizes, etc.
-  #
-  #
-  pixi_init: (renderer_config)=>
-    @pixi = {}
-    @pixi.r = PIXI.autoDetectRenderer(@get_canvas_width(), @get_canvas_height(), renderer_config)
-    @canvas = @pixi.r.view
-    $('body').prepend @pixi.r.view
-
-
-    @stage = new PIXI.Container()
-
-
-    @document.on 'mouseleave', 'canvas', @on_mouseup
-    @document.on 'mousedown', 'canvas', @on_mousedown
-    @document.on 'mouseup', 'canvas', @on_mouseup
-
-    window.onresize = (event) =>
-      #canvas.width = window.innerWidth
-      #canvas.height = window.innerHeight
-      @pixi.r.resize @get_canvas_width(), @get_canvas_height()
-      @canvas_height = @get_canvas_height()
-      @canvas_width = @get_canvas_width()
-      true
-
-    window.onresize()
-    null
-
-  #
-  #
-  # Todo: move constants, add check for presence of dash
-  #
-  #
-  get_canvas_height: ()->
-    DASH_HEIGHT = 120
-    window.innerHeight - DASH_HEIGHT
-
-  get_canvas_width: ()->
-    window.innerWidth
-
-
-  null
-
-
-
-class TC extends Calligraph
+class Calligraph extends CalligraphBase
   constructor: ()->
     super
 
   init: ()->
     #hello!
-    console.log 'Calligraph "Test" init'
+    console.log 'Calligraph "Text Masking" init'
 
 
-    #see Calligraph for the actual pixi_init function
+    #see CalligraphBase for the actual pixi_init function
     renderer_config = {
       "clearBeforeRender": true
       "preserveDrawingBuffer": true
     }
     @pixi_init renderer_config
-
     @pixi_begin()
 
+
+
+    #the worst sound in the world. Temporarily.
     @m.node
       id: 'saw1'
       node_type: 'Oscillator'
@@ -254,12 +130,14 @@ class TC extends Calligraph
       at: 1
       from_now: true
 
-    #@pointer.position.x = data.lastX
-    #@pointer.position.y = data.lastY
+
+
+
 
   pixi_begin: () ->
 
     imagePaths = ["images/small-white-line.png"]
+
     useParticleContainer = false
 
     particle_config = {
@@ -302,35 +180,127 @@ class TC extends Calligraph
 
 
 
-    #the recursive filter requires a base sprite to render into
-    @capture = new PIXI.Sprite()
-    @capture.width = @canvas_width
-    @capture.height = @canvas_height
-    @stage.addChild @capture
 
-    #these two RenderTextures will round-robin to enable the recursive filtering effects
-    @renderTexture1 = new PIXI.RenderTexture(@pixi.r, @canvas_width, @canvas_height)
-    @renderTexture2 = new PIXI.RenderTexture(@pixi.r, @canvas_width, @canvas_height)
-    currentTexture = @renderTexture1
-    @capture.texture = currentTexture
+
+
+
+    # N.B. Filters defined here may or may not be used.
     blur = new PIXI.filters.BlurFilter()
     blur.blur = 5
     bloom = new PIXI.filters.BloomFilter()
     bloom.blur = 1
     noise = new PIXI.filters.NoiseFilter()
     noise.noise = -0.1
-    #bd = new PIXI.filters.BlurDirFilter(0,15)
-    #bd.passes = 4
+    rgbsplit = new PIXI.filters.RGBSplitFilter()
+    @pxl8 = new PIXI.filters.PixelateFilter()
+    @pxl8.size = {x:5,y:5}
+    edge = new PIXI.filters.ConvolutionFilter([
+      -1, -1, -1
+      -1,  8, -1
+      -1, -1, -1
+    ], window.innerWidth, window.innerHeight  )
+    white_surrounded = new PIXI.filters.ConvolutionFilter([
+      0.125, 0.125, 0.125
+      0.125,  0, 0.125
+      0.125, 0.125, 0.125
+    ], window.innerWidth, window.innerHeight  )
+
+    brightness_to_alpha = new PIXI.filters.ColorMatrixFilter()
+    brightness_to_alpha.matrix = [
+      1, 0, 0, 0, 0
+      0, 1, 0, 0, 0
+      0, 0, 1, 0, 0
+      1, 1, 1, 0, 0
+    ]
+
+    blue = new PIXI.filters.ColorMatrixFilter()
+    blue.matrix = [
+      0, 0, 0, 0, 0
+      0, 0, 0, 0, 0
+      0, 0, 1, 0, 0
+      0, 0, 0, 0, 0
+    ]
+    # this filter isolates pure white
+    thresh = new PIXI.filters.ColorMatrixFilter()
+    thresh.matrix = [
+      100, 100, 100, 0, -299
+      100, 100, 100, 0, -299
+      100, 100, 100, 0, -299
+      100, 100, 100, 0, -299
+    ]
+    colorstep = new PIXI.filters.ColorStepFilter()
+    colorstep.step = 1
+
+
+
+
+    #Sprite for the text reveal effect
+    @halo = new PIXI.Sprite()
+    @halo.width = @canvas_width
+    @halo.height = @canvas_height
+    @halo.filters = [ thresh ]
+    @haloTexture = new PIXI.RenderTexture(@pixi.r, @canvas_width, @canvas_height)
+    @halo.texture = @haloTexture
+
+
+    @text_sprite = new PIXI.Text 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum rhoncus, magna non laoreet hendrerit, dui neque lobortis turpis, ac consectetur sem nisi nec ipsum. Donec nunc sapien, fermentum vel laoreet ac, fermentum ac nibh. Vestibulum id mollis diam, non tincidunt sapien. Aenean maximus aliquet mollis. Nunc ex justo, mollis at ornare quis, pharetra a ligula. Donec mauris elit, feugiat eu quam a, tempor tempor arcu. Cras condimentum, massa ut egestas gravida, dolor dui iaculis orci, interdum luctus leo nibh ac est. Integer ultrices ut orci vitae pulvinar.',{font : '48px Noto Serif', fill : 0xffff10, align : 'left', wordWrap : true, wordWrapWidth: 500 }
+
+    # The pixelate filter produces nothing when used at the end of a filter chain on halo, for some reason.
+    # For example [ edge, bloom, @pxl8] doesn't work but [edge, bloom] does.
+    # Maddeningly, the pixelate filter produces the desired effect when used on stage on its own.
+
+    @haloContainer = new PIXI.Container()
+    @haloContainer.addChild @halo
+    @haloContainer.position = {x: 0, y: 0}
+    #@haloContainer.filters = [ thresh ]
+    @stage.addChild @text_sprite
+
+    @r1 = 0.0
+    @render_recursive_halo = @create_recursive_render @haloContainer, 'capture2', 'r1', false
+    @text_sprite.mask = @capture2
+    @haloContainer.alpha = 0.9
+
+    #@render_recursive_halo = ()->
+    #  null
+    @stage.addChild @haloContainer
+
+
+    #testing doing reflections experimental reflection setup
+    #for x in [2..6]
+    #  @["halo#{x}"] = new PIXI.Sprite()
+    #  @["halo#{x}"].width = @canvas_width
+    #  @["halo#{x}"].height = @canvas_height
+    #  #@["halo#{x}"].filters = [ thresh ] #[  edge ]
+    #  @["halo#{x}"].texture = @haloTexture
+    #  @["halo#{x}"].rotation = 60 * x
+    #  @["halo#{x}"].anchor = {x: 0.5, y: 0.5}
+    #  @haloContainer.addChild @["halo#{x}"]
+
+    #container to hold the capture sprite and be used as the render source for the recursive filter
+    @feedback = new PIXI.Container()
+    @stage.addChild @feedback
+
+    # Create the recursive filter round robin function for @feedback
+    @render_recursive_stage = @create_recursive_render @feedback, 'capture', 'capture_alpha',  true
+
+
+
+
+
+
+
+
+
+
+
     @capture.filters = [
-      #new PIXI.filters.BloomFilter()
-      #new PIXI.filters.ConvolutionFilter([0,0,0,0,1.1,0,0,0,0], window.innerWidth, window.innerHeight  )
       blur
-      #noise
+      #@pxl8
       #bd
       bloom
     ]
 
-
+    #@stage.filters = [  edge, bloom, @pxl8]
 
 
     urls = imagePaths.slice()
@@ -363,32 +333,12 @@ class TC extends Calligraph
         alpha: true
     else
       @emitterContainer = new PIXI.Container()
+    @feedback.addChild @emitterContainer
 
-
-    @stage.addChild @emitterContainer
-
-    #@graphics = new PIXI.Graphics()
-    #@graphics.beginFill(0x000000, 0.001)
-    #@graphics.drawRect(0, 0, window.innerWidth, window.innerHeight)
-    #
-    #@stage.addChild @graphics
-
-    @renderTexture = new PIXI.RenderTexture(@pixi.r, window.innerWidth, window.innerHeight)
-    @t_sprite = new PIXI.Sprite()
-    @t_sprite.width = 200
-    @t_sprite.height = 200
-    #@t_sprite.texture = new PIXI.Texture.fromImage('/images/imgres.jpg')
-
-    @stage.addChild @t_sprite
-
-    #window.blurFilter = new PIXI.filters.ConvolutionFilter([1.1, 2.1, 0.1, 1.1, 0.1, 0.1, 0.1, 0.1, 1.1], window.innerWidth, window.innerHeight  )
-
-    #window.blurFilter = new PIXI.filters.BloomFilter()
 
 
     @emitter = new cloudkid.Emitter @emitterContainer, art, particle_config
 
-    console.log @emitter
     @dashboard.add_key @white_pix_per, 109
 
     #Center on the stage
@@ -409,9 +359,12 @@ class TC extends Calligraph
   animate: (timeval) =>
     elapsed = timeval - @last_timeval
     @framerate_val.text( Math.round( 1000 / elapsed ) )
-    @white_pix_per.call this unless( @total_frames++ % 15 )
+    @white_pix_per.call this unless( @total_frames++ % 5 )
     @last_timeval = timeval
-    @render_round_robin()
+
+    @render_recursive_stage()
+    @render_recursive_halo()
+    @haloTexture.render @feedback, false, false
     #console.log "loss is #{@velocity_loss * elapsed}"
 
     #console.log "vel was #{@velocity}"
@@ -439,19 +392,6 @@ class TC extends Calligraph
     null
 
 
-  # flips @renderTexture1 and 2, re-renders 1 and makes it the texture of @capture, which is then scaled up
-  # todo: incorporate into Calligraph class
-  render_round_robin: ()=>
-    temp = @renderTexture1
-    @renderTexture1 = @renderTexture2
-    @renderTexture2 = temp
-    #@capture.scale.x = @capture.scale.y = 1.005
-    @capture.alpha = @capture_alpha
-    @renderTexture1.render @stage, false, true
-    #@capture.scale.x = @capture.scale.y = 1.0
-    @capture.alpha = 1.0
-    @capture.texture = @renderTexture1
-
 
   #
   #
@@ -460,8 +400,8 @@ class TC extends Calligraph
   #
   white_pix_per: () ->
     _then = performance.now()
-    skip = 256
-    pixdata = @renderTexture1.getPixels()
+    skip = 512
+    pixdata = @capture.texture.getPixels()
     whites = 0
     calls = 0
     for i in [0..pixdata.length] by (4 * skip)
@@ -476,6 +416,4 @@ class TC extends Calligraph
 
 
 
-window.Calligraphs =
-  TC: TC
-
+window.Calligraph = Calligraph

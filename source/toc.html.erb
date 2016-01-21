@@ -1,0 +1,35 @@
+---
+title: Sound Calligraph
+layout: clean
+---
+
+<% content_for :scripts do %>
+
+    <%= javascript_include_tag "partials/fonts" %>
+
+<% end %>
+
+<% content_for :styles do %>
+
+    <%= stylesheet_link_tag "toc" %>
+
+<% end %>
+
+<h2>
+Sound Calligraph
+</h2>
+<h3>
+Proofs of concept
+</h3>
+
+
+
+
+
+<ul>
+    <% data[:directory][:proofs_of_concept].each do |proof| %>
+        <li><h4><%= link_to proof.name, proof.url %></h4>
+        <p><%= proof.info %></p>
+        </li>
+    <% end %>
+</ul>

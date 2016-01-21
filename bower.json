@@ -4,7 +4,7 @@
   "authors": [
     "Matt Lima <matt@3-tone.com>"
   ],
-  "description": "Gesture-controlled sound sculptures",
+  "description": "Gesture-controlled software sculptures",
   "main": "index.html",
   "moduleType": [],
   "license": "MIT",
@@ -24,6 +24,7 @@
     "mooog-extras": "*",
     "pixi.js": "git://github.com/GoodBoyDigital/pixi.js.git#~3.0.8",
     "pixi-particles": "~1.5.2",
-    "foundation": "~5.5.3"
+    "foundation": "~5.5.3",
+    "Proton": "proton#*"
   }
 }

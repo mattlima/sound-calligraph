@@ -1,0 +1,19 @@
+---
+title: Sound Calligraph
+---
+
+<% content_for :scripts do %>
+
+    <%= javascript_include_tag "partials/fonts" %>
+
+<% end %>
+
+<%= partial "partials/dash_display" %>
+
+<%= javascript_include_tag "partials/calligraphs/#{locals[:calligraph]}" %>
+
+<script>
+    $(document).ready(function(){
+        window.__c = new Calligraph();
+    })
+</script>

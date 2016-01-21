@@ -5,7 +5,7 @@
 //= require pixi.js/bin/pixi.js
 //= require pixi-particles/dist/pixi-particles.min.js
 //= require ./partials/_Dashboard
-//= require ./partials/_Calligraph
-//= require ./_master
+//= require ./partials/_CalligraphBase
+
 
 

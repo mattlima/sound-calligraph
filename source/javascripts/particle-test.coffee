@@ -1,6 +1,6 @@
 #
 #
-# Not sure why but removing the filter on the second stage made this work.
+# This scratch file has nothing to do with testing particles
 #
 #
 #
@@ -16,9 +16,9 @@ class FC
       "preserveDrawingBuffer": true
     }
     STAGE_HEIGHT = 500
-    STAGE_WIDTH = 500
+    STAGE_WIDTH = 1000
 
-    @pixi.r = PIXI.autoDetectRenderer(STAGE_WIDTH * 2, STAGE_HEIGHT, renderer_config)
+    @pixi.r = PIXI.autoDetectRenderer(STAGE_WIDTH, STAGE_HEIGHT, renderer_config)
 
 
     $(@canvas).replaceWith @pixi.r.view
@@ -27,99 +27,66 @@ class FC
 
 
 
-    # stage 1 is where stuff happens, left over from
-    @stage1 = new PIXI.Container()
-    @stage2 = new PIXI.Container()
-    @stage1.height = STAGE_HEIGHT
-    @stage2.height = STAGE_HEIGHT
-    @stage1.blendMode = 'screen'
-    @stage2.blendMode = 'screen'
-    @stage1.width = STAGE_WIDTH
-    @stage2.width = STAGE_WIDTH
-    @stage2.position.x = STAGE_WIDTH
-    @stage.addChild @stage1
-    @stage.addChild @stage2
+#     # stage 1 is where stuff happens, left over from
+#     @stage1 = new PIXI.Container()
+#     @stage2 = new PIXI.Container()
+#     @stage1.height = STAGE_HEIGHT
+#     @stage2.height = STAGE_HEIGHT
+#     @stage1.blendMode = 'screen'
+#     @stage2.blendMode = 'screen'
+#     @stage1.width = STAGE_WIDTH
+#     @stage2.width = STAGE_WIDTH
+#     @stage2.position.x = STAGE_WIDTH
+#     @stage.addChild @stage1
+#     @stage.addChild @stage2
 
-    @stage1.interactive = true
-    @stage1.click = @moveSprite
+    @stage.interactive = true
+    @stage.click = @moveSprite
 
     #capturing the clicks seems to require a sprite
     @capture = new PIXI.Sprite()
     @capture.width = STAGE_WIDTH
     @capture.height = STAGE_HEIGHT
-    @stage1.addChild @capture
+    @stage.addChild @capture
 
 
-    @sp = new PIXI.Sprite()
-    @sp.width=50
-    @sp.height=50
-    @sp.texture = new PIXI.Texture.fromImage("/images/imgres.jpg")
-    @stage1.addChild @sp
+    @fire = new PIXI.Sprite()
+    @fire.width=STAGE_WIDTH
+    @fire.height=STAGE_HEIGHT
+    @fire.texture = new PIXI.Texture.fromImage("/images/fire.jpg")
+    @fire.texture = new PIXI.Texture.fromImage("/images/4colorpattern_orig.png")
+    @stage.addChild @fire
 
-    #define two renderTextures that will round-robin for a recursive texture effect
-    @renderTexture1 = new PIXI.RenderTexture(@pixi.r,STAGE_WIDTH,STAGE_HEIGHT)
-    @renderTexture2 = new PIXI.RenderTexture(@pixi.r,STAGE_WIDTH,STAGE_HEIGHT)
-    currentTexture = @renderTexture1
-    @capture.texture = currentTexture
-    @capture.filters = [
-      new PIXI.filters.BlurFilter(10)
+
+    @forest = new PIXI.Sprite()
+    @forest.width=STAGE_WIDTH
+    @forest.height=STAGE_HEIGHT
+    @forest.texture = new PIXI.Texture.fromImage("/images/forest.jpg")
+    @stage.addChild @forest
+
+    blur = new PIXI.filters.BlurFilter()
+    blur.blur = 5
+    blue = new PIXI.filters.ColorMatrixFilter()
+    blue.matrix = [
+      1, 0, 0, 0, 0
+      0, 1, 0, 0, 0
+      0, 0, 1, 0, 0
+      1, 1, 1, 0, 0
     ]
-
-    #this is controlled by a button
-    $("#tran1").click @render_1_to_2
-
-    #the bounceback will target @capture since that covers all of stage1
-    $("#tran2").click @render_2_to_1
-
-    #see the function
-    $("#tran3").click ()=>
-      console.log @white_pix_per @renderTexture1.getPixels()
-
-
-#     window.filt = new PIXI.filters.BlurFilter()
-#     window.filt.blur = 10
-#     @stage1.filters = [window.filt]
-#
-#     window.filt2 = new PIXI.filters.BlurFilter()
-#     window.filt2.blur = 10
-    #@stage2.filters = [window.filt2]
-
+    @forest.filters = [ blue ]
+    @forest.blendMode = PIXI.BLEND_MODES.NORMAL
+    window.f = @forest
 
     requestAnimationFrame @animate
 
-  render_toggle: false
 
   moveSprite: (e) =>
-    @sp.position = {x: e.data.global.x, y: e.data.global.y }
-
-  render_1_to_2: ()=>
-    @renderTexture2.render @stage1, false, true
-
-  render_2_to_1: ()=>
-    @renderTexture1.render @stage2
-
-  scale = 1.0
-
-  # flips @renderTexture1 and 2, re-renders 1 and makes it the texture of @capture
-  render_round_robin: ()=>
-    temp = @renderTexture1
-    @renderTexture1 = @renderTexture2
-    @renderTexture2 = temp
-    @capture.scale.x = @capture.scale.y = 1.005
-    @capture.alpha = 0.9
-    @renderTexture1.render @stage, false, true
-    @capture.scale.x = @capture.scale.y = 1.0
-    @capture.alpha = 1.0
-    @capture.texture = @renderTexture1
+    @fire.position = {x: e.data.global.x, y: e.data.global.y }
 
 
   animate: ()=>
     requestAnimationFrame @animate
-    @render_round_robin()
-#    if(render_toggle = !render_toggle)
-#      @render_2_to_1()
-#    else
-#      @render_1_to_2()
+
 
     @pixi.r.render @stage
 

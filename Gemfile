@@ -12,3 +12,8 @@ gem "wdm", "~> 0.1.0", :platforms => [:mswin, :mingw]
 
 # Windows does not come with time zone data
 gem "tzinfo-data", platforms: [:mswin, :mingw, :jruby]
+
+#pushing up to s3
+gem 'middleman-s3_sync'
+
+gem 'pry'

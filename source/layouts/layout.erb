@@ -13,7 +13,10 @@
 
     <%= yield_content :styles if content_for? :styles %>
 
-    <%= javascript_include_tag  "all" %>
+    <%= yield_content :scripts if content_for? :scripts %>
+
+    <%= javascript_include_tag  "core" %>
+
   </head>
 
   <body class="<%= page_classes %>">

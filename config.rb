@@ -1,3 +1,4 @@
+require 'pry'
 sprockets.append_path 'bower_components'
 
 ###
@@ -37,6 +38,14 @@ end
 # proxy "/this-page-has-no-template.html", "/template-file.html", :locals => {
 #  :which_fake_page => "Rendering a fake page with a local variable" }
 
+proxy "/index.html", "/toc.html", :locals => { directory: data.directory.symbolize_keys }
+
+
+data.directory.proofs_of_concept.each do |proof|
+  proxy proof.url, "/proof.html", :locals => proof.symbolize_keys
+end
+
+
 ###
 # Helpers
 ###
@@ -67,6 +76,8 @@ configure :build do
   # For example, change the Compass output style for deployment
   # activate :minify_css
 
+  ignore 'bower_components/*'
+
   # Minify Javascript on build
   # activate :minify_javascript
 
@@ -74,7 +85,12 @@ configure :build do
   # activate :asset_hash
 
   # Use relative URLs
-  # activate :relative_assets
+  activate :relative_assets
+
+  activate :s3_sync do |s3_sync|
+    s3_sync.delete = true
+  end
+
 
   # Or use a different image path
   # set :http_prefix, "/Content/images/"

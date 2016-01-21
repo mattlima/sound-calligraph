@@ -1,0 +1,13 @@
+:proofs_of_concept:
+  -
+    name: "Recursive bloom filter"
+    info: "Bloom with feedback, color dependent on position, particle density dependent on time since mousedown. Sound is three saw waves, frequency follows position."
+    url: "/recursive-bloom-filter"
+    template: "/proof.html"
+    calligraph: "recursive-bloom"
+  -
+    name: "Text masking"
+    info: "Bloom filter used to unmask text via a second recursive filter. Sound is three saw waves, reverb, panning, volumne, filtering follow position."
+    url: "/text-masking"
+    template: "/proof.html"
+    calligraph: "text-masking"
