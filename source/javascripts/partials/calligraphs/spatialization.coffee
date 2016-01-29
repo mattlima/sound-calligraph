@@ -4,7 +4,7 @@ class Calligraph extends CalligraphBase
 
   subinit: ()->
     #hello!
-    console.log 'Calligraph "Text Masking" init'
+    console.log 'Calligraph "Spatialization" init'
 
 
     #see CalligraphBase for the actual pixi_init function
@@ -19,50 +19,44 @@ class Calligraph extends CalligraphBase
 
 
     #the worst sound in the world. Temporarily.
-    @m.node
-      id: 'saw1'
-      node_type: 'Oscillator'
-      type: 'sawtooth'
-      frequency: 100
-    @m.node
-      id: 'saw2'
-      node_type: 'Oscillator'
-      type: 'sawtooth'
-      frequency: 100
-    @m.node
-      id: 'saw3'
-      node_type: 'Oscillator'
-      type: 'sawtooth'
-      frequency: 100
-    @m.node
-      id: 'comp'
-      node_type: 'DynamicsCompressor'
-      threshold: -50
-      knee: 40
-      ratio: 12
-      reduction: -20
-      attack: 0
-      release: 0.25
-    @m.node
-      id: 'verb'
-      node_type: 'Convolver'
-      buffer_source_file: 'sound/impulse-responses/st-andrews-church-ortf-shaped.wav'
-    @m.node
-      id: 'master'
-      node_type: 'Gain'
-      gain: 0
-    @m.node
-      id: 'delay1'
-      node_type: 'Delay'
-      delayTime: 0.5
-      feedback: 0.25
 
+    @m.track 'saw_track',
+      @m.node
+        id: 'saw1'
+        node_type: 'Oscillator'
+        type: 'sawtooth'
+        frequency: 100
+      @m.node
+        id: 'comp'
+        node_type: 'DynamicsCompressor'
+        threshold: -50
+        knee: 40
+        ratio: 12
+        reduction: -20
+        attack: 0
+        release: 0.25
+
+    @m.track 'verb_track',
+      @m.node
+        id: 'verb'
+        node_type: 'Convolver'
+        buffer_source_file: 'sound/impulse-responses/st-andrews-church-ortf-shaped.wav'
+    .param('gain',1)
+
+#     @m.node
+#       id: 'master'
+#       node_type: 'Gain'
+#       gain: 0
+#     @m.node
+#       id: 'delay1'
+#       node_type: 'Delay'
+#       delayTime: 0.5
+#       feedback: 0.25
     @n = @m._nodes
-
-    @n.saw1.chain(@n.master)
-    @n.saw2.chain(@n.master)
-    @n.saw3.chain(@n.master)
-    @n.master.connect(@n.verb)
+    @n.saw_track.send 'rev_send', @n.verb_track, 'pre'
+    console.log @n.saw_track
+#     @n.saw1.chain(@n.master)
+#     @n.master.connect(@n.verb)
     #@n.comp.chain(@n.master)
 
 
@@ -80,13 +74,13 @@ class Calligraph extends CalligraphBase
   on_mousedown: (e) =>
     @last_click = performance.now()
     @emitter.emit = true
-#     @n.saw1.start()
+    @n.saw1.start()
 #     @n.saw2.start()
 #     @n.saw3.start()
 
   on_mouseup: (e) =>
     @emitter.emit = false
-#     @n.saw1.stop()
+    @n.saw1.stop()
 #     @n.saw2.stop()
 #     @n.saw3.stop()
 
@@ -101,35 +95,32 @@ class Calligraph extends CalligraphBase
     @emitter.startAlpha = (@velocity + 0.0001) / 3.5
     r = @clamp((@canvas_height * 0.8) - data.lastY, 0, @canvas_height, 70, 255)
     g = @clamp(0, (@canvas_height * 0.8) - data.lastY, @canvas_height, 70, 255)
-
     @emitter.startColor = [r, g, 150]
     @emitter.endColor = [r, g, 150]
-
     @emitter.updateOwnerPos(data.curX,data.curY)
-    #@pixi.line_emitter.update(elapsed * 0.001);
-    #console.log "gain #{data.vel} to "+ (@clamp(data.vel, 0, 0.1, 0, 1))
-    @n.master.param
-      #gain: 0.2 + @clamp(data.velX, -2, 2, -0.3, 0.3)
-      gain: @clamp(@velocity, 0, 5, 0, 0.5)
-      ramp:'expo'
-      at: 0.1
-      from_now: true
 
-    @n.saw1.param
-      frequency: @clamp(@canvas_height - data.lastY, 0, @canvas_height, 50, 250)
+
+    #console.log "gain #{data.vel} to "+ (@clamp(data.vel, 0, 0.1, 0, 1))
+    @n.saw_track.param(
+      #gain: 0.2 + @clamp(data.velX, -2, 2, -0.3, 0.3)
+      { gain: 1 - Math.abs @clamp(data.lastX, 0, @canvas_width, -1.0, 1.0)
       ramp:'expo'
       at: 0.1
-      from_now: true
-    @n.saw2.param
-      frequency: @clamp(@canvas_height - data.lastY, 0, @canvas_height, 50, 250)
-      ramp:'expo'
-      at: 0.5
-      from_now: true
-    @n.saw3.param
-      frequency: @clamp(@canvas_height - data.lastY, 0, @canvas_height, 50, 250)
-      ramp:'expo'
-      at: 1
-      from_now: true
+      from_now: true }
+      ).param(
+      { pan: @clamp(data.lastX, 0, @canvas_width, -1.0, 1.0)
+      ramp:'linear'
+      at: 0.1
+      from_now: true }
+      )
+
+
+#     @n.saw1.param
+#       frequency: @clamp(@canvas_height - data.lastY, 0, @canvas_height, 50, 250)
+#       ramp:'expo'
+#       at: 0.1
+#       from_now: true
+
 
 
 
@@ -247,10 +238,14 @@ class Calligraph extends CalligraphBase
 
 
     @text_sprite = new PIXI.Text 'This knife is as long as my wife in the pool\n
-and I am as dark as the sun\n
-The silence from the moon is as dark when we sleep\n\n
-I always bring my captives here\n
-and let the grapevines choke them',{font : "#{Math.floor(window.innerWidth*@canvas_scale_factor/40)}px Noto Serif", fill : 0x7E9EA8, align : 'left', wordWrap : false }
+    and I am as dark as the sun\n
+    The silence from the moon is as dark when we sleep\n\n
+    I always bring my captives here\n
+    and let the grapevines choke them',
+      font: "#{Math.floor(window.innerWidth*@canvas_scale_factor/40)}px Noto Serif"
+      fill: 0x7E9EA8
+      align: 'left'
+      wordWrap: false
 
     # The pixelate filter produces nothing when used at the end of a filter chain on halo, for some reason.
     # For example [ edge, bloom, @pxl8] doesn't work but [edge, bloom] does.
@@ -260,19 +255,19 @@ and let the grapevines choke them',{font : "#{Math.floor(window.innerWidth*@canv
     @haloContainer.addChild @halo
     @haloContainer.position = {x: 0, y: 0}
     #@haloContainer.filters = [ thresh ]
-    @stage.addChild @text_sprite
-    @text_sprite.position = { x: 300 / @canvas_scale_factor, y:  250 / @canvas_scale_factor}
-    @text_sprite.filters = [blur2]
+    #@stage.addChild @text_sprite
+    #@text_sprite.position = { x: 300 / @canvas_scale_factor, y:  250 / @canvas_scale_factor}
+    #@text_sprite.filters = [blur2]
 
 
-    @r1 = 0.0
-    @render_recursive_halo = @create_recursive_render @haloContainer, 'capture2', 'r1', false
-    @text_sprite.mask = @capture2
-    @haloContainer.alpha = 0.9
+    #@r1 = 0.0
+    #@render_recursive_halo = @create_recursive_render @haloContainer, 'capture2', 'r1', false
+    #@text_sprite.mask = @capture2
+    #@haloContainer.alpha = 0.9
 
     #@render_recursive_halo = ()->
     #  null
-    @stage.addChild @haloContainer
+    #@stage.addChild @haloContainer
 
 
     #testing doing reflections experimental reflection setup
@@ -301,31 +296,20 @@ and let the grapevines choke them',{font : "#{Math.floor(window.innerWidth*@canv
 
 
 
+#
+#
+#     @capture.filters = [
+#       blur
+#       #@pxl8
+#       #bd
+#       bloom
+#     ]
 
-
-    @capture.filters = [
-      blur
-      #@pxl8
-      #bd
-      bloom
-    ]
-
-    #@stage.filters = [  edge, bloom, @pxl8]
 
 
     urls = imagePaths.slice()
     makeTextures = true
 
-
-
-    ###
-    			bg = new PIXI.Sprite(PIXI.Texture.fromImage("images/bg.png"));
-    			//bg is a 1px by 1px image
-    			bg.scale.x = canvas.width;
-    			bg.scale.y = canvas.height;
-    			bg.tint = 0x000000;
-    			stage.addChild(bg);
-    ###
 
     #collect the textures, now that they are all loaded
 
@@ -375,9 +359,9 @@ and let the grapevines choke them',{font : "#{Math.floor(window.innerWidth*@canv
     @white_pix_per.call this unless( @total_frames++ % 5 )
     @last_timeval = timeval
 
-    @render_recursive_stage()
-    @render_recursive_halo()
-    @haloTexture.render @feedback, false, false
+    #@render_recursive_stage()
+    #@render_recursive_halo()
+    #@haloTexture.render @feedback, false, false
     #console.log "loss is #{@velocity_loss * elapsed}"
 
     #console.log "vel was #{@velocity}"

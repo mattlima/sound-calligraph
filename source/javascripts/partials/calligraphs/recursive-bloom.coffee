@@ -334,7 +334,7 @@ class Calligraph extends CalligraphBase
 
     @emitter = new cloudkid.Emitter @emitterContainer, art, particle_config
 
-    @dashboard.add_key @white_pix_per, 109
+    @dashboard.add_keydown @white_pix_per, 109
 
     #Center on the stage
     @emitter.updateOwnerPos(window.innerWidth / 2, window.innerHeight / 2)

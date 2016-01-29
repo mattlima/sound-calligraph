@@ -35,7 +35,7 @@ class Dashboard
       else
         @key_callbacks[e.which]() if @key_callbacks[e.which]?
 
-  add_key: (f, k) ->
+  add_keydown: (f, k) ->
     @key_callbacks[k] = f.bind @calli
 
 

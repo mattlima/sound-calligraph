@@ -5,6 +5,7 @@
     url: "/recursive-bloom-filter"
     template: "/proof.html"
     calligraph: "recursive-bloom"
+    base: "v1"
     config:
       dashboard: true
   -
@@ -13,5 +14,15 @@
     url: "/text-masking"
     template: "/proof.html"
     calligraph: "text-masking"
+    base: "v1"
+    config:
+      dashboard: true
+  -
+    name: "Mouse control of spatialization"
+    info: "Panning, volume, filtering, reverb controlled by mouse coordinates. <br>Sound 'presence' greatest at center of screen"
+    url: "/spatialization"
+    template: "/proof.html"
+    calligraph: "spatialization"
+    base: "v2"
     config:
       dashboard: true
