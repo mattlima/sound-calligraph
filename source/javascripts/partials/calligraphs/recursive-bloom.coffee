@@ -2,7 +2,7 @@ class Calligraph extends CalligraphBase
   constructor: ()->
     super
 
-  init: ()->
+  subinit: ()->
     #hello!
     console.log 'Recursive bloom proof of concept'
 
@@ -79,15 +79,15 @@ class Calligraph extends CalligraphBase
   on_mousedown: (e) =>
     @last_click = performance.now()
     @emitter.emit = true
-    @n.saw1.start()
-    @n.saw2.start()
-    @n.saw3.start()
+#     @n.saw1.start()
+#     @n.saw2.start()
+#     @n.saw3.start()
 
   on_mouseup: (e) =>
     @emitter.emit = false
-    @n.saw1.stop()
-    @n.saw2.stop()
-    @n.saw3.stop()
+#     @n.saw1.stop()
+#     @n.saw2.stop()
+#     @n.saw3.stop()
 
   on_mousemove: (m)->
     @velocity = Math.min(@velocity + m.vel, @velocity_max)
@@ -211,47 +211,47 @@ class Calligraph extends CalligraphBase
     blur.blur = 5
     bloom = new PIXI.filters.BloomFilter()
     bloom.blur = 1
-    noise = new PIXI.filters.NoiseFilter()
-    noise.noise = -0.1
-    rgbsplit = new PIXI.filters.RGBSplitFilter()
-    @pxl8 = new PIXI.filters.PixelateFilter()
-    @pxl8.size = {x:5,y:5}
-    edge = new PIXI.filters.ConvolutionFilter([
-      -1, -1, -1
-      -1,  8, -1
-      -1, -1, -1
-    ], window.innerWidth, window.innerHeight  )
-    white_surrounded = new PIXI.filters.ConvolutionFilter([
-      0.125, 0.125, 0.125
-      0.125,  0, 0.125
-      0.125, 0.125, 0.125
-    ], window.innerWidth, window.innerHeight  )
-
-    brightness_to_alpha = new PIXI.filters.ColorMatrixFilter()
-    brightness_to_alpha.matrix = [
-      1, 0, 0, 0, 0
-      0, 0, 0, 0, 0
-      0, 0, 0, 0, 0
-      0, 0, 0, 0, -255
-    ]
-
-    blue = new PIXI.filters.ColorMatrixFilter()
-    blue.matrix = [
-      0, 0, 0, 0, 0
-      0, 0, 0, 0, 0
-      0, 0, 1, 0, 0
-      0, 0, 0, 0, 0
-    ]
-    # this filter isolates pure white
-    thresh = new PIXI.filters.ColorMatrixFilter()
-    thresh.matrix = [
-      100, 100, 100, 0, -299
-      100, 100, 100, 0, -299
-      100, 100, 100, 0, -299
-      0, 0, 0, 1, 0
-    ]
-    colorstep = new PIXI.filters.ColorStepFilter()
-    colorstep.step = 1
+#     noise = new PIXI.filters.NoiseFilter()
+#     noise.noise = -0.1
+#     rgbsplit = new PIXI.filters.RGBSplitFilter()
+#     @pxl8 = new PIXI.filters.PixelateFilter()
+#     @pxl8.size = {x:5,y:5}
+#     edge = new PIXI.filters.ConvolutionFilter([
+#       -1, -1, -1
+#       -1,  8, -1
+#       -1, -1, -1
+#     ], window.innerWidth, window.innerHeight  )
+#     white_surrounded = new PIXI.filters.ConvolutionFilter([
+#       0.125, 0.125, 0.125
+#       0.125,  0, 0.125
+#       0.125, 0.125, 0.125
+#     ], window.innerWidth, window.innerHeight  )
+#
+#     brightness_to_alpha = new PIXI.filters.ColorMatrixFilter()
+#     brightness_to_alpha.matrix = [
+#       1, 0, 0, 0, 0
+#       0, 0, 0, 0, 0
+#       0, 0, 0, 0, 0
+#       0, 0, 0, 0, -255
+#     ]
+#
+#     blue = new PIXI.filters.ColorMatrixFilter()
+#     blue.matrix = [
+#       0, 0, 0, 0, 0
+#       0, 0, 0, 0, 0
+#       0, 0, 1, 0, 0
+#       0, 0, 0, 0, 0
+#     ]
+#     # this filter isolates pure white
+#     thresh = new PIXI.filters.ColorMatrixFilter()
+#     thresh.matrix = [
+#       100, 100, 100, 0, -299
+#       100, 100, 100, 0, -299
+#       100, 100, 100, 0, -299
+#       0, 0, 0, 1, 0
+#     ]
+#     colorstep = new PIXI.filters.ColorStepFilter()
+#     colorstep.step = 1
 
 
 

@@ -12,12 +12,17 @@
 ###
 class CalligraphBase
 
-  constructor: () ->
+  constructor: (config) ->
+    config ?= {}
+    config?.dashboard ?= true
+    @config = config
 
     #retain useful DOM refs
     @document = $(document)
 
 
+
+  init: ()->
     # initialize libraries
     @m = new Mooog
 
@@ -39,13 +44,17 @@ class CalligraphBase
     @last_mouse_update = performance.now()
 
     # for now, set up dashboard automatically
-    @dashboard = new Dashboard(this)
+    @dashboard = new Dashboard(this) if @config.dashboard
+
+    #for using lower resolutions we need to know how much we're scaling
+    @canvas_native_width = 1200
+    @canvas_scale_factor = (@canvas_native_width / window.innerWidth)
 
     # keep mousedata current for inheriting classes
     @document.on 'mousemove', @update_mousedata
 
-    # The init function is supplied by the inheriting class
-    @init()
+    # The subinit function is supplied by the inheriting class
+    @subinit()
 
 
   # constrains val to within inmin < val < inmax and then scales it to the interval outmin-outmax
@@ -60,6 +69,8 @@ class CalligraphBase
     now = performance.now()
     elapsed = now - @last_mouse_update
     @last_mouse_update = now
+    e.offsetX *= @canvas_scale_factor
+    e.offsetY *= @canvas_scale_factor
     @mousedata.curX = e.offsetX
     @mousedata.curY = e.offsetY
     deltaX = @mousedata.curX - @mousedata.lastX
@@ -80,11 +91,15 @@ class CalligraphBase
   #
   #
   # The stage is always used so it is managed here to take care of resizes, etc.
+  # todo: fix this scaling factor stuff so it makes sense
   #
   #
   pixi_init: (renderer_config)=>
+
+
     @pixi = {}
-    @pixi.r = PIXI.autoDetectRenderer(@get_canvas_width(), @get_canvas_height(), renderer_config)
+    @pixi.r = new PIXI.WebGLRenderer(@get_canvas_width(), @get_canvas_height(), renderer_config)
+
     @canvas = @pixi.r.view
     $('body').prepend @pixi.r.view
 
@@ -97,24 +112,28 @@ class CalligraphBase
     @document.on 'mouseup', 'canvas', @on_mouseup
 
     window.onresize = (event) =>
-      @pixi.r.resize @get_canvas_width(), @get_canvas_height()
       @canvas_height = @get_canvas_height()
       @canvas_width = @get_canvas_width()
+      return
+      @pixi.r.resize @get_canvas_width(), @get_canvas_height()
       true
 
     window.onresize()
     null
 
+
   #
   #
-  # Todo: move constants, add check for presence of dash
+  # Todo: move constants,
   #
   #
   get_canvas_height: ()->
+    return @canvas_native_width * 0.66
     DASH_HEIGHT = 120
     window.innerHeight - DASH_HEIGHT
 
   get_canvas_width: ()->
+    return @canvas_native_width
     window.innerWidth
 
 

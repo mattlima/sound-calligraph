@@ -8,12 +8,14 @@ title: Sound Calligraph
 
 <% end %>
 
-<%= partial "partials/dash_display" %>
+
+<%= partial("partials/dash_display") if locals[:config][:dashboard] %>
 
 <%= javascript_include_tag "partials/calligraphs/#{locals[:calligraph]}" %>
 
 <script>
     $(document).ready(function(){
-        window.__c = new Calligraph();
+        window.__c = new Calligraph( <%= locals[:config].to_json %> );
+        window.try_startup();
     })
 </script>

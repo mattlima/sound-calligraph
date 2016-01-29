@@ -2,7 +2,7 @@ class Calligraph extends CalligraphBase
   constructor: ()->
     super
 
-  init: ()->
+  subinit: ()->
     #hello!
     console.log 'Calligraph "Text Masking" init'
 
@@ -11,6 +11,7 @@ class Calligraph extends CalligraphBase
     renderer_config = {
       "clearBeforeRender": true
       "preserveDrawingBuffer": true
+      "transparent": true
     }
     @pixi_init renderer_config
     @pixi_begin()
@@ -79,15 +80,15 @@ class Calligraph extends CalligraphBase
   on_mousedown: (e) =>
     @last_click = performance.now()
     @emitter.emit = true
-    @n.saw1.start()
-    @n.saw2.start()
-    @n.saw3.start()
+#     @n.saw1.start()
+#     @n.saw2.start()
+#     @n.saw3.start()
 
   on_mouseup: (e) =>
     @emitter.emit = false
-    @n.saw1.stop()
-    @n.saw2.stop()
-    @n.saw3.stop()
+#     @n.saw1.stop()
+#     @n.saw2.stop()
+#     @n.saw3.stop()
 
   on_mousemove: (m)->
     @velocity = Math.min(@velocity + m.vel, @velocity_max)
@@ -163,9 +164,9 @@ class Calligraph extends CalligraphBase
       	"min": 0.1
       	"max": 1.75
       #"blendMode": "SCREEN"
-      "frequency": 0.005
+      "frequency": 0.003
       "emitterLifetime": 0
-      "maxParticles": 2000
+      "maxParticles": 1000
       "pos":
       	"x": 0
       	"y": 0
@@ -187,39 +188,41 @@ class Calligraph extends CalligraphBase
     # N.B. Filters defined here may or may not be used.
     blur = new PIXI.filters.BlurFilter()
     blur.blur = 5
+    blur2 = new PIXI.filters.BlurFilter()
+    blur2.blur = 2
     bloom = new PIXI.filters.BloomFilter()
     bloom.blur = 1
-    noise = new PIXI.filters.NoiseFilter()
-    noise.noise = -0.1
-    rgbsplit = new PIXI.filters.RGBSplitFilter()
-    @pxl8 = new PIXI.filters.PixelateFilter()
-    @pxl8.size = {x:5,y:5}
-    edge = new PIXI.filters.ConvolutionFilter([
-      -1, -1, -1
-      -1,  8, -1
-      -1, -1, -1
-    ], window.innerWidth, window.innerHeight  )
+    #noise = new PIXI.filters.NoiseFilter()
+    #noise.noise = -0.1
+    #rgbsplit = new PIXI.filters.RGBSplitFilter()
+    #@pxl8 = new PIXI.filters.PixelateFilter()
+    #@pxl8.size = {x:5,y:5}
+    #edge = new PIXI.filters.ConvolutionFilter([
+    #  -1, -1, -1
+    #  -1,  8, -1
+    #  -1, -1, -1
+    #], window.innerWidth, window.innerHeight  )
     white_surrounded = new PIXI.filters.ConvolutionFilter([
       0.125, 0.125, 0.125
       0.125,  0, 0.125
       0.125, 0.125, 0.125
     ], window.innerWidth, window.innerHeight  )
 
-    brightness_to_alpha = new PIXI.filters.ColorMatrixFilter()
-    brightness_to_alpha.matrix = [
-      1, 0, 0, 0, 0
-      0, 1, 0, 0, 0
-      0, 0, 1, 0, 0
-      1, 1, 1, 0, 0
-    ]
-
-    blue = new PIXI.filters.ColorMatrixFilter()
-    blue.matrix = [
-      0, 0, 0, 0, 0
-      0, 0, 0, 0, 0
-      0, 0, 1, 0, 0
-      0, 0, 0, 0, 0
-    ]
+    #brightness_to_alpha = new PIXI.filters.ColorMatrixFilter()
+    #brightness_to_alpha.matrix = [
+    #  1, 0, 0, 0, 0
+    #  0, 1, 0, 0, 0
+    #  0, 0, 1, 0, 0
+    #  1, 1, 1, 0, 0
+    #]
+    #
+    #blue = new PIXI.filters.ColorMatrixFilter()
+    #blue.matrix = [
+    #  0, 0, 0, 0, 0
+    #  0, 0, 0, 0, 0
+    #  0, 0, 1, 0, 0
+    #  0, 0, 0, 0, 0
+    #]
     # this filter isolates pure white
     thresh = new PIXI.filters.ColorMatrixFilter()
     thresh.matrix = [
@@ -228,8 +231,8 @@ class Calligraph extends CalligraphBase
       100, 100, 100, 0, -299
       100, 100, 100, 0, -299
     ]
-    colorstep = new PIXI.filters.ColorStepFilter()
-    colorstep.step = 1
+    #colorstep = new PIXI.filters.ColorStepFilter()
+    #colorstep.step = 1
 
 
 
@@ -243,7 +246,11 @@ class Calligraph extends CalligraphBase
     @halo.texture = @haloTexture
 
 
-    @text_sprite = new PIXI.Text 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum rhoncus, magna non laoreet hendrerit, dui neque lobortis turpis, ac consectetur sem nisi nec ipsum. Donec nunc sapien, fermentum vel laoreet ac, fermentum ac nibh. Vestibulum id mollis diam, non tincidunt sapien. Aenean maximus aliquet mollis. Nunc ex justo, mollis at ornare quis, pharetra a ligula. Donec mauris elit, feugiat eu quam a, tempor tempor arcu. Cras condimentum, massa ut egestas gravida, dolor dui iaculis orci, interdum luctus leo nibh ac est. Integer ultrices ut orci vitae pulvinar.',{font : '48px Noto Serif', fill : 0xffff10, align : 'left', wordWrap : true, wordWrapWidth: 500 }
+    @text_sprite = new PIXI.Text 'This knife is as long as my wife in the pool\n
+and I am as dark as the sun\n
+The silence from the moon is as dark when we sleep\n\n
+I always bring my captives here\n
+and let the grapevines choke them',{font : "#{Math.floor(window.innerWidth*@canvas_scale_factor/40)}px Noto Serif", fill : 0x7E9EA8, align : 'left', wordWrap : false }
 
     # The pixelate filter produces nothing when used at the end of a filter chain on halo, for some reason.
     # For example [ edge, bloom, @pxl8] doesn't work but [edge, bloom] does.
@@ -254,6 +261,9 @@ class Calligraph extends CalligraphBase
     @haloContainer.position = {x: 0, y: 0}
     #@haloContainer.filters = [ thresh ]
     @stage.addChild @text_sprite
+    @text_sprite.position = { x: 300 / @canvas_scale_factor, y:  250 / @canvas_scale_factor}
+    @text_sprite.filters = [blur2]
+
 
     @r1 = 0.0
     @render_recursive_halo = @create_recursive_render @haloContainer, 'capture2', 'r1', false
@@ -322,6 +332,9 @@ class Calligraph extends CalligraphBase
     art = []
     art.push(PIXI.Texture.fromImage(imagePaths[i])) for path, i in imagePaths
 
+    myimg = document.getElementById('display')
+    basetx = new PIXI.BaseTexture(myimg)
+    art.push new PIXI.Texture(basetx)
 
     if useParticleContainer
       emitterContainer = new PIXI.ParticleContainer()
@@ -339,7 +352,7 @@ class Calligraph extends CalligraphBase
 
     @emitter = new cloudkid.Emitter @emitterContainer, art, particle_config
 
-    @dashboard.add_key @white_pix_per, 109
+    @dashboard?.add_key @white_pix_per, 109
 
     #Center on the stage
     @emitter.updateOwnerPos(window.innerWidth / 2, window.innerHeight / 2)

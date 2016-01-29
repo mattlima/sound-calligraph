@@ -1,4 +1,5 @@
 require 'pry'
+require 'json'
 sprockets.append_path 'bower_components'
 
 ###
@@ -77,6 +78,7 @@ configure :build do
   # activate :minify_css
 
   ignore 'bower_components/*'
+  ignore 'proof.html'
 
   # Minify Javascript on build
   # activate :minify_javascript
