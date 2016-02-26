@@ -13,30 +13,16 @@
 
 
 
-    <script src="./javascripts/all.js" type="text/javascript"></script>
+    <script src="./javascripts/mooog/mooog.js" type="text/javascript"></script>
   </head>
 
   <body class="index">
-    <div id="canvas" class="canvas" width="200" height="200"><div class="pointer hide"></div></div>
+    <h1>hello</h1>
 
-<div id="display">
-        <div class="info_field gauge" id="velX"><span>velX</span><span class="contain"><span></span></span></div>
-
-        <div class="info_field gauge" id="velY"><span>velY</span><span class="contain"><span></span></span></div>
-
-        <div class="info_field gauge" id="vel"><span>vel</span><span class="contain"><span></span></span></div>
-
-        <div class="info_field gauge" id="velX_dX"><span>velX_dX</span><span class="contain"><span></span></span></div>
-
-        <div class="info_field gauge" id="velY_dX"><span>velY_dX</span><span class="contain"><span></span></span></div>
-
-    <div class="info_field number" id="xPos"><span>xPos</span><span class="val"></span></div>
-    <div class="info_field number" id="yPos"><span>yPos</span><span class="val"></span></div>
-    <div class="info_field number" id="mousedown"><span>mousedown</span><span class="val"></span></div>
-    <div class="info_field number" id="mouseactive"><span>mouseactive</span><span class="val"></span></div>
-    <div class="info_field number" id="padded_vel"><span>padded_vel</span><span class="val"></span></div>
-</div>
-
-
+    <script>
+      m = new Mooog();
+      m.node({id:'a',node_type:'AudioBufferSource',buffer_source_file: 'sound/big-kalimba.wav'});
+      m.node('a').onended = function(){ console.log("DONE"); };
+            </script>
   </body>
 </html>

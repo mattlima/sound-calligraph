@@ -4,7 +4,7 @@ title: Sound Calligraph
 
 <% content_for :scripts do %>
 
-    <%= javascript_include_tag "partials/fonts" %>
+    <% javascript_include_tag "partials/fonts" %>
 
 <% end %>
 
@@ -19,6 +19,10 @@ title: Sound Calligraph
 <script>
     $(document).ready(function(){
         window.__c = new Calligraph( <%= locals[:config].to_json %> );
-        window.try_startup();
+        if(typeof(try_startup) !== 'undefined'){
+            try_startup();
+        }else{
+            window.__c.init();
+        }
     })
 </script>

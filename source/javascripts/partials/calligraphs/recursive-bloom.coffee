@@ -306,35 +306,34 @@ class Calligraph extends CalligraphBase
     #@stage.filters = [  edge, bloom, @pxl8]
 
 
-    urls = imagePaths.slice()
-    makeTextures = true
-
 
 
 
     #collect the textures, now that they are all loaded
 
-    art = []
-    art.push(PIXI.Texture.fromImage(imagePaths[i])) for path, i in imagePaths
+
+    art = [
+      { framerate: "matchLife"
+      loop: true
+      textures: [
+        "images/spark_40x40.png"
+        "images/spark_40x40_m.png"
+        "images/spark_40x40_s.png"
+      ]}
+    ]
 
 
-    if useParticleContainer
-      emitterContainer = new PIXI.ParticleContainer()
-      emitterContainer.setProperties
-        scale: true
-        position: true
-        rotation: true
-        uvs: true
-        alpha: true
-    else
-      @emitterContainer = new PIXI.Container()
+
+
+    @emitterContainer = new PIXI.Container()
     @feedback.addChild @emitterContainer
 
 
 
     @emitter = new cloudkid.Emitter @emitterContainer, art, particle_config
+    @emitter.particleConstructor = cloudkid.AnimatedParticle
 
-    @dashboard.add_keydown @white_pix_per, 109
+    @dashboard?.add_keydown @white_pix_per, 109
 
     #Center on the stage
     @emitter.updateOwnerPos(window.innerWidth / 2, window.innerHeight / 2)

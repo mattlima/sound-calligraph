@@ -4,7 +4,7 @@ class Calligraph extends CalligraphBase
 
   subinit: ()->
     #hello!
-    console.log 'Calligraph "Spatialization" init'
+    console.log 'Calligraph "Animated Particles" init'
 
 
     #see CalligraphBase for the actual pixi_init function
@@ -14,17 +14,54 @@ class Calligraph extends CalligraphBase
       "transparent": true
     }
     @pixi_init renderer_config
+    @moog_init()
     @pixi_begin()
 
 
 
-    #the worst sound in the world. Temporarily.
+  ###
+  #
+  # Respond to mouse events
+  #
+  ###
+
+  on_mousedown: (e) =>
+    @last_click = performance.now()
+    @chime_active = true
+    @chimes.trigger_play()
+    @emitter.emit = true
+    #@n.kalimba.start()
+#     @n.saw2.start()
+#     @n.saw3.start()
+
+  on_mouseup: (e) =>
+    @emitter.emit = false
+    @chime_active = false
+    #@testnode.stop()
+    #@n.kalimba.stop()
+#     @n.saw2.stop()
+#     @n.saw3.stop()
+
+  on_mousemove: (m)->
+    @velocity = Math.min(@velocity + m.vel, @velocity_max)
+
+
+
+
+
+  ###
+  #
+  # Set up Mooog
+  #
+  ###
+
+  moog_init: ()->
 
     @m.track 'saw_track',
       @m.node
         id: "kalimba"
         node_type: "AudioBufferSource"
-        buffer_source_file: "sound/big-kalimba.wav", loop: true
+        buffer_source_file: "sound/fake-glock-res-F.wav", loop: true
 #       @m.node
 #         id: 'saw1'
 #         node_type: 'Oscillator'
@@ -82,7 +119,43 @@ class Calligraph extends CalligraphBase
     @n.saw_track.send 'rev_send', @n.verb_track, 'pre'
     @n.saw_track.send 'del1_send', @n.del_track1, 'pre'
     @n.saw_track.send 'del1_send', @n.verb_track, 'post'
-    console.log @n.saw_track
+
+    @chimes = new Windchime(@m, [
+      "sound/fake-glock-res-F.mp3"
+      "sound/fake-glock-res-F.mp3"
+      "sound/fake-glock-res-F.mp3"
+      "sound/fake-glock-res-F.mp3"
+      "sound/fake-glock-res-F.mp3"
+      "sound/fake-glock-res-F.mp3"
+      "sound/fake-glock-res-F.mp3"
+      "sound/fake-glock-res-F.mp3"
+      "sound/fake-glock-res-F.mp3"
+      "sound/fake-glock-res-F.mp3"
+      "sound/fake-glock-res-F.mp3"
+      "sound/fake-glock-res-F.mp3"
+      "sound/fake-glock-res-F.mp3"
+      "sound/fake-glock-res-F.mp3"
+      "sound/fake-glock-res-F.mp3"
+      "sound/fake-glock-res-F.mp3"
+      "sound/fake-glock-res-F.mp3"
+      "sound/fake-glock-res-F.mp3"
+      "sound/fake-glock-res-F.mp3"
+      "sound/fake-glock-res-F.mp3"
+      "sound/fake-glock-res-F.mp3"
+    ])
+
+    console.log @n.verb_track
+    @chimes.master_out.connect @n.verb_track._nodes[0]
+    @chimes.master_out.connect @n.del_track1._nodes[0]
+
+
+
+
+
+
+
+
+
 #     @n.saw1.chain(@n.master)
 #     @n.master.connect(@n.verb)
     #@n.comp.chain(@n.master)
@@ -99,88 +172,29 @@ class Calligraph extends CalligraphBase
 
 
 
-  on_mousedown: (e) =>
-    @last_click = performance.now()
-    @emitter.emit = true
-    @n.kalimba.start()
-#     @n.saw2.start()
-#     @n.saw3.start()
-
-  on_mouseup: (e) =>
-    @emitter.emit = false
-    @n.kalimba.stop()
-#     @n.saw2.stop()
-#     @n.saw3.stop()
-
-  on_mousemove: (m)->
-    @velocity = Math.min(@velocity + m.vel, @velocity_max)
-
-  on_animate: (data, elapsed) =>
-
-    duration = performance.now() - @last_click
-
-    pulse = Math.sin((Math.PI * (duration/500)) + (Math.PI/4))
-    @emitter.maxLifetime = pulse
-    #looks like alpha is actually on a modulo
-    @emitter.startAlpha = pulse
-    r = @clamp((@canvas_height * 0.8) - data.lastY, 0, @canvas_height, 70, 255)
-    g = @clamp(0, (@canvas_height * 0.8) - data.lastY, @canvas_height, 70, 255)
-    @emitter.startColor = [r, g, 150]
-    @emitter.endColor = [r, g, 150]
-    @emitter.updateOwnerPos(data.curX,data.curY)
-
-
-    #console.log "gain #{data.vel} to "+ (@clamp(data.vel, 0, 0.1, 0, 1))
-    @n.saw_track.param(
-      #gain: 0.2 + @clamp(data.velX, -2, 2, -0.3, 0.3)
-      { gain: 1 - Math.abs @clamp(data.lastX, 0, @canvas_width, -1.0, 1.0)
-      ramp:'expo'
-      at: 0.1
-      from_now: true }
-      ).param(
-      { pan: @clamp(data.lastX, 0, @canvas_width, -1.0, 1.0)
-      ramp:'linear'
-      at: 0.1
-      from_now: true }
-      )
-    @n.filt.param(
-      { frequency: Math.abs @clamp(data.lastX, 0, @canvas_width, -1000, 1000)
-      ramp:'linear'
-      at: 0.1
-      from_now: true }
-      )
-
-
-
-#     @n.saw1.param
-#       frequency: @clamp(@canvas_height - data.lastY, 0, @canvas_height, 50, 250)
-#       ramp:'expo'
-#       at: 0.1
-#       from_now: true
-
-
-
-
+  ###
+  #
+  # Set up PIXI stuff particular to this page
+  #
+  ###
 
 
   pixi_begin: () ->
 
     imagePaths = ["images/small-white-line.png"]
 
-    useParticleContainer = false
-
     particle_config = {
       "alpha":
       	"start": 0.62
       	"end": 0
       "scale":
-      	"start": 0.25
-      	"end": 0.75
+      	"start": 1
+      	"end": 1
       "color":
       	"start": "FF0000"
       	"end": "000000"
       "speed":
-      	"start": 200
+      	"start": 100
       	"end": 0
       "startRotation":
       	"min": 0
@@ -189,9 +203,8 @@ class Calligraph extends CalligraphBase
       	"min": 0
       	"max": 1
       "lifetime":
-      	"min": 0.1
-      	"max": 1.75
-      #"blendMode": "SCREEN"
+      	"min": 1
+      	"max": 1
       "frequency": 0.003
       "emitterLifetime": 0
       "maxParticles": 1000
@@ -326,13 +339,6 @@ class Calligraph extends CalligraphBase
     @render_recursive_stage = @create_recursive_render @feedback, 'capture', 'capture_alpha',  true
 
 
-
-
-
-
-
-
-
 #
 #
 #     @capture.filters = [
@@ -343,33 +349,35 @@ class Calligraph extends CalligraphBase
 #     ]
 
 
-
-    urls = imagePaths.slice()
-    makeTextures = true
-
-
-    #collect the textures, now that they are all loaded
-
-    art = []
-    art.push(PIXI.Texture.fromImage(imagePaths[i])) for path, i in imagePaths
-
+    randomTexture = (textures, times)->
+      ret = []
+      for i in [1..times]
+        textures.shuffle()
+        ret.push
+          texture: textures[0]
+          count: Math.round(Math.random() * 10)
+      ret
 
 
-    if useParticleContainer
-      emitterContainer = new PIXI.ParticleContainer()
-      emitterContainer.setProperties
-        scale: true
-        position: true
-        rotation: true
-        uvs: true
-        alpha: true
-    else
-      @emitterContainer = new PIXI.Container()
+
+    art = [
+      { framerate: "matchLife"
+      loop: false
+      textures: randomTexture([
+        "images/spark_40x40.png"
+        "images/spark_40x40_m.png"
+        "images/spark_40x40_s.png"
+        ], 30)
+      }
+    ]
+
+    @emitterContainer = new PIXI.Container()
     @feedback.addChild @emitterContainer
 
 
 
     @emitter = new cloudkid.Emitter @emitterContainer, art, particle_config
+    @emitter.particleConstructor = cloudkid.AnimatedParticle
 
     @dashboard?.add_keydown @white_pix_per, 109
 
@@ -389,38 +397,64 @@ class Calligraph extends CalligraphBase
 
 
   animate: (timeval) =>
+
+    requestAnimationFrame @animate
+
     elapsed = timeval - @last_timeval
     @framerate_val.text( Math.round( 1000 / elapsed ) )
-    @white_pix_per.call this unless( @total_frames++ % 5 )
+    #@white_pix_per.call this unless( @total_frames++ % 5 )
     @last_timeval = timeval
-
-    #@render_recursive_stage()
-    #@render_recursive_halo()
-    #@haloTexture.render @feedback, false, false
-    #console.log "loss is #{@velocity_loss * elapsed}"
-
-    #console.log "vel was #{@velocity}"
     @velocity = Math.max(0, @velocity - (@velocity_loss * elapsed))
 
-    #console.log "vel is now #{@velocity}"
-    #check that mouse has moved in last n milliseconds, if not,
-    #trigger a fake mouse event so vel is zero
-
-#     if (Date.now() - @mousedata.last_timestamp) > 300
-#       #console.log "zeroing", @mousedata.last_timestamp
-#       @update_mousedata
-#         timeStamp: Date.now()
-#         offsetX: @mousedata.lastX
-#         offsetY: @mousedata.lastY
 
 
 
-    @emitter.update(elapsed * 0.001)
 
     #@pointer.rotation += 0.01
+
+
+    mousedata = @mousedata
+    duration = performance.now() - @last_click
+
+    pulse = Math.sin((Math.PI * (duration/500)) + (Math.PI/4))
+    if @chime_active
+      if(Math.random() < ((pulse * 0.15) + 0 ))
+        @chimes.trigger_play()
+    @emitter.maxLifetime = pulse * 4
+    #looks like alpha is actually on a modulo
+    @emitter.startAlpha = pulse
+    r = @clamp((@canvas_height * 0.8) - mousedata.lastY, 0, @canvas_height, 70, 255)
+    g = @clamp(0, (@canvas_height * 0.8) - mousedata.lastY, @canvas_height, 70, 255)
+    @emitter.startColor = [r, g, 150]
+    @emitter.endColor = [r, g, 150]
+    @emitter.updateOwnerPos(mousedata.curX,mousedata.curY)
+    @emitter.update(elapsed * 0.001)
+
+
+    #console.log "gain #{mousedata.vel} to "+ (@clamp(mousedata.vel, 0, 0.1, 0, 1))
+    @n.saw_track.param(
+      #gain: 0.2 + @clamp(mousedata.velX, -2, 2, -0.3, 0.3)
+      { gain: 1 - Math.abs @clamp(mousedata.lastX, 0, @canvas_width, -1.0, 1.0)
+      ramp:'expo'
+      at: 0.1
+      from_now: true }
+      ).param(
+      { pan: @clamp(mousedata.lastX, 0, @canvas_width, -1.0, 1.0)
+      ramp:'linear'
+      at: 0.1
+      from_now: true }
+      )
+    @n.filt.param(
+      { frequency: Math.abs @clamp(mousedata.lastX, 0, @canvas_width, -1000, 1000)
+      ramp:'linear'
+      at: 0.1
+      from_now: true }
+      )
+
+
+
+
     @pixi.r.render @stage
-    @on_animate(@mousedata, elapsed)
-    requestAnimationFrame @animate
     null
 
 

@@ -1,6 +1,6 @@
 ###
 
-  Calligraph common module v2
+  Calligraph common module v3
 
   Responsibilities:
     Hold DOM references
@@ -9,10 +9,9 @@
     Call subclass init
     Provide utility functions
 
-  Work in v2 is dedicated the mouse tracking code.
-  Mouse events come at unpredictable times and can
-  cause huge deltas in derived variables so we add
-  a smoothing algo
+  Work in v3 is about getting Proton to play nice
+  with PIXI. Proton's a poorly-documented but interesting
+  library for particle effects.
 
 
 ###
@@ -31,7 +30,7 @@ class CalligraphBase
   #for now, we're dealing with performance issues by using resolution scaling on
   #larger screens. Mouse coordinates will need to be adjusted by the scaling
   #factor as well.
-  MAX_PIXEL_COUNT: 1000000
+  MAX_CANVAS_WIDTH: 1200
   DASHBOARD_HEIGHT: 120
 
   init: ()->
@@ -57,7 +56,7 @@ class CalligraphBase
     @last_mouse_update = performance.now()
 
     # for now, set up dashboard automatically
-    @dashboard = new Dashboard(this) if @config.dashboard and (window.location.hash isnt "#nodash")
+    @dashboard = new Dashboard(this) if @config.dashboard
 
 
     # keep mousedata current for inheriting classes
@@ -101,51 +100,34 @@ class CalligraphBase
   #
   #
   # The stage is always used so it is managed here.
-  # We limit notional canvas size to a max number of pixels
-  # to avoid performance issues on large screens with the
-  # recursive render functions
+  # Because the dimensions of the stage are incorporated into
+  # the sprites made by the recursive setup functions
+  # we can't allow resizes... sorry!
+  #
   #
   pixi_init: (renderer_config)=>
 
-    #secondary sprites and textures created for recursive renders will be indexed here for resizes.
-    @sprites_to_resize = []
-    @textures_to_resize = []
 
     @pixi = {}
 
+    @canvas_width = @get_canvas_width()
+    @canvas_height = @get_canvas_height()
 
-    @pixi.r = new PIXI.WebGLRenderer(100, 100, renderer_config)
+    @pixi.r = new PIXI.WebGLRenderer(@canvas_width, @canvas_height, renderer_config)
 
     @canvas = @pixi.r.view
     $('body').prepend @pixi.r.view
 
+
     @stage = new PIXI.Container()
 
-    @resize()
 
     @document.on 'mouseleave', 'canvas', @on_mouseup
     @document.on 'mousedown', 'canvas', @on_mousedown
     @document.on 'mouseup', 'canvas', @on_mouseup
-    $(window).on 'resize', @resize
+
 
     null
-
-
-  #resizes the canvas and all the full-page sprites to the new screen
-  # dimensions, respecting MAX_PIXEL_COUNT
-  resize: () =>
-    [@canvas_width, @canvas_height] = @get_canvas_dimensions()
-
-    for i in @sprites_to_resize
-      i.width = @canvas_width
-      i.height = @canvas_height
-
-    for i in @textures_to_resize
-      i.resize @canvas_width, @canvas_height
-
-    @pixi.r.resize @canvas_width, @canvas_height
-    true
-
 
 
   #
@@ -154,21 +136,19 @@ class CalligraphBase
   # in which case it is scaled down
   #
 
-  get_canvas_dimensions: ()->
+  get_canvas_width: ()->
     ww = window.innerWidth
-    wh = window.innerHeight
-    pix = @MAX_PIXEL_COUNT / (ww * wh)
-    if pix < 1
-      @canvas_scale_factor = Math.sqrt(pix)
-      @canvas_width = Math.round(ww * @canvas_scale_factor)
-      @canvas_height = Math.round(wh * @canvas_scale_factor)
-    else
-      @canvas_scale_factor = 1.0
-      @canvas_width = ww
-      @canvas_height = wh
+    if ww <= @MAX_CANVAS_WIDTH
+      @canvas_scale_factor = 1
+      return ww
+    @canvas_scale_factor = (@MAX_CANVAS_WIDTH / ww)
+    @MAX_CANVAS_WIDTH
 
-    [@canvas_width, @canvas_height]
 
+  get_canvas_height: ()->
+    DASH_HEIGHT = if @dashboard? then @DASHBOARD_HEIGHT else 0
+    @canvas_scale_factor * (window.innerHeight - DASH_HEIGHT)
+    (window.innerHeight - DASH_HEIGHT)
 
   ###
     In order to do recursive filter effects, we have to use a round-robin rendering process, otherwise
@@ -176,13 +156,10 @@ class CalligraphBase
     This function returns a function to be called in animate() that swaps the textures every other frame
     and renders. targetSprite can be a sprite or a container.
   ###
-  create_recursive_render: (targetSprite, secondary_sprite_name, alpha_control_property, clearBeforeRendering, resolution) =>
+  create_recursive_render: (targetSprite, secondary_sprite_name, alpha_control_property, clearBeforeRendering) =>
     @recursive_id ?= 0
-    resolution ?= 1.0
     #the recursive filter requires a base sprite to render into
     @[secondary_sprite_name] = new PIXI.Sprite()
-    @sprites_to_resize.push @[secondary_sprite_name]
-
     @[secondary_sprite_name].width = @canvas_width
     @[secondary_sprite_name].height = @canvas_height
     targetSprite.addChild @[secondary_sprite_name]
@@ -191,10 +168,8 @@ class CalligraphBase
     swapTexture2 = "swapTexture#{@recursive_id += 1}"
 
     #these two RenderTextures will round-robin to enable the recursive filtering effects
-    @[swapTexture1] = new PIXI.RenderTexture(@pixi.r, @canvas_width, @canvas_height, PIXI.SCALE_MODES.LINEAR, resolution)
-    @[swapTexture2] = new PIXI.RenderTexture(@pixi.r, @canvas_width, @canvas_height, PIXI.SCALE_MODES.LINEAR, resolution)
-    @textures_to_resize.push @[swapTexture1]
-    @textures_to_resize.push @[swapTexture2]
+    @[swapTexture1] = new PIXI.RenderTexture(@pixi.r, @canvas_width, @canvas_height)
+    @[swapTexture2] = new PIXI.RenderTexture(@pixi.r, @canvas_width, @canvas_height)
     currentTexture = @[swapTexture1]
     @[secondary_sprite_name].texture = currentTexture
     # function that is returned

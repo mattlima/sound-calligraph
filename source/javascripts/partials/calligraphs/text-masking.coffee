@@ -96,7 +96,7 @@ class Calligraph extends CalligraphBase
   on_animate: (data, elapsed) =>
 
     duration = performance.now() - @last_click
-    @emitter.maxLifetime = Math.min(8, @velocity)
+    @emitter.maxLifetime = Math.min(2, @velocity)
     #looks like alpha is actually on a modulo
     @emitter.startAlpha = (@velocity + 0.0001) / 3.5
     r = @clamp((@canvas_height * 0.8) - data.lastY, 0, @canvas_height, 70, 255)
@@ -313,10 +313,6 @@ and let the grapevines choke them',{font : "#{Math.floor(window.innerWidth*@canv
     #@stage.filters = [  edge, bloom, @pxl8]
 
 
-    urls = imagePaths.slice()
-    makeTextures = true
-
-
 
     ###
     			bg = new PIXI.Sprite(PIXI.Texture.fromImage("images/bg.png"));
@@ -330,27 +326,38 @@ and let the grapevines choke them',{font : "#{Math.floor(window.innerWidth*@canv
     #collect the textures, now that they are all loaded
 
     art = []
-    art.push(PIXI.Texture.fromImage(imagePaths[i])) for path, i in imagePaths
 
-    myimg = document.getElementById('display')
-    basetx = new PIXI.BaseTexture(myimg)
-    art.push new PIXI.Texture(basetx)
+    randomTexture = (textures, times)->
+      ret = []
+      for i in [1..times]
+        textures.shuffle()
+        ret.push
+          texture: textures[0]
+          count: Math.round(Math.random() * 10)
+      ret
 
-    if useParticleContainer
-      emitterContainer = new PIXI.ParticleContainer()
-      emitterContainer.setProperties
-        scale: true
-        position: true
-        rotation: true
-        uvs: true
-        alpha: true
-    else
-      @emitterContainer = new PIXI.Container()
+
+
+    art = [
+      { framerate: "matchLife"
+      loop: false
+      textures: randomTexture([
+        "images/spark_40x40.png"
+        "images/spark_40x40_m.png"
+        "images/spark_40x40_s.png"
+        ], 20)
+      }
+    ]
+
+
+
+    @emitterContainer = new PIXI.Container()
     @feedback.addChild @emitterContainer
 
 
 
     @emitter = new cloudkid.Emitter @emitterContainer, art, particle_config
+    @emitter.particleConstructor = cloudkid.AnimatedParticle
 
     @dashboard?.add_keydown @white_pix_per, 109
 

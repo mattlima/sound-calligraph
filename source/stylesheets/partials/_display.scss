@@ -1,6 +1,10 @@
 div#display{
 	border:1px solid #DDD;
 	width:100vw;
+  opacity: 0.5;
+  position: absolute;
+  bottom: 0;
+
 	.info_field{
   	height:30px;
   	font-size:10px;

@@ -7,7 +7,7 @@
     calligraph: "recursive-bloom"
     base: "v1"
     config:
-      dashboard: true
+      dashboard: false
   -
     name: "Text masking"
     info: "Bloom filter used to unmask text via a second recursive filter. "
@@ -16,13 +16,58 @@
     calligraph: "text-masking"
     base: "v1"
     config:
-      dashboard: true
+      dashboard: false
   -
     name: "Mouse control of spatialization"
-    info: "Panning, volume, filtering, reverb controlled by mouse coordinates. <br>Sound 'presence' greatest at center of screen"
+    info: "Panning, volume, filtering, reverb controlled by mouse coordinates. <br>Sound 'presence' greatest at center of screen. Particle emitter synched to sound."
     url: "/spatialization"
     template: "/proof.html"
     calligraph: "spatialization"
+    base: "v2"
+    config:
+      dashboard: false
+  -
+    name: "Animated particles and 'sound particle emitter'"
+    info: "Testing the animated particle capability of PIXI particles paired with a bank of audioBuffer objects that are also randomized"
+    url: "/animated-particles"
+    template: "/proof.html"
+    calligraph: "animated-particles"
+    base: "v2"
+    config:
+      dashboard: false
+  -
+    name: "Proton > PixiParticles"
+    info: "Testing using Proton instead of Pixi Particles"
+    url: "/proton-particles"
+    template: "/proof.html"
+    calligraph: "proton-particles"
+    base: "v2"
+    config:
+      dashboard: false
+  -
+    name: "Fun with emitters I"
+    info: "What if an <a href='https://www.youtube.com/watch?v=XVC8Jpb1PrA'>emitter emitted emitters</a>?"
+    url: "/truck-truck-truck"
+    template: "/proof.html"
+    calligraph: "emitters1"
+    base: "v2"
+    config:
+      dashboard: false
+  -
+    name: "Fun with emitters II"
+    info: "Same as I but with more particles and a fireworks effect generated using a low-resolution recursive texture"
+    url: "/flashes"
+    template: "/proof.html"
+    calligraph: "emitters2"
+    base: "v2"
+    config:
+      dashboard: false
+  -
+    name: "Mosquitos"
+    info: "Application of particle trajectories to oscillator output via spatialization effects"
+    url: "/mosquitos"
+    template: "/proof.html"
+    calligraph: "mosquitos"
     base: "v2"
     config:
       dashboard: true

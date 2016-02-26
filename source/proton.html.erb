@@ -5,129 +5,122 @@ title: Proton
 
 <% content_for :scripts do
 
-javascript_include_tag 'proton'
+javascript_include_tag 'proton', 'pixi-only'
 
 end %>
+        <div id="container">
 
-		<canvas id="testCanvas"></canvas>
+		</div>
 		<script>
-			var canvas;
+				var canvas;
 			var context;
 			var proton;
-			var renderer;
 			var emitter;
-			var stats;
-			var _mousedown = false;
-			var mouseObj;
-			var attractionBehavior, crossZoneBehavior;
+
+			var pixiStage;
+			var pixiRender;
 
 			Main();
-
 			function Main() {
-				canvas = document.getElementById("testCanvas");
-				canvas.width = window.innerWidth;
-				canvas.height = window.innerHeight;
-				context = canvas.getContext('2d');
-				//addStats();
 
 				createProton();
-				createRenderer();
+				createRender();
 				tick();
-				canvas.addEventListener('mousedown', mousedownHandler, false);
-				canvas.addEventListener('mouseup', mouseupHandler, false);
-				canvas.addEventListener('mousemove', mousemoveHandler, false);
-				window.onresize = function(e) {
-					canvas.width = window.innerWidth;
-					canvas.height = window.innerHeight;
-					crossZoneBehavior.reset(new Proton.RectZone(0, 0, canvas.width, canvas.height), 'cross');
-				}
 			}
 
-			function addStats() {
-				stats = new Stats();
-				stats.setMode(2);
-				stats.domElement.style.position = 'absolute';
-				stats.domElement.style.left = '0px';
-				stats.domElement.style.top = '0px';
-				document.body.appendChild(stats.domElement);
-			}
 
 			function createProton() {
-				proton = new Proton;
-				emitter = new Proton.Emitter();
-				emitter.damping = 0.008;
-				emitter.rate = new Proton.Rate(250);
+
+				proton = new Proton();
+				emitter = new Proton.BehaviourEmitter();
+				emitter.rate = new Proton.Rate(new Proton.Span(15, 30), new Proton.Span(.2, .5));
 				emitter.addInitialize(new Proton.Mass(1));
-				emitter.addInitialize(new Proton.Radius(4));
-				emitter.addInitialize(new Proton.Velocity(new Proton.Span(1.5), new Proton.Span(0, 360), 'polar'));
 
-				mouseObj = {
-					x : 1003 / 2,
-					y : 610 / 2
-				};
-				attractionBehavior = new Proton.Attraction(mouseObj, 0, 0);
-				crossZoneBehavior = new Proton.CrossZone(new Proton.RectZone(0, 0, canvas.width, canvas.height), 'cross');
-				emitter.addBehaviour(new Proton.Color('random'));
-				emitter.addBehaviour(attractionBehavior, crossZoneBehavior);
-				emitter.addBehaviour(new Proton.RandomDrift(10, 10, .05));
-				emitter.p.x = canvas.width / 2;
-				emitter.p.y = canvas.height / 2;
-				emitter.emit('once');
+
+				emitter.addInitialize(new Proton.Velocity(new Proton.Span(3, 9), new Proton.Span(0, 30, true), 'polar'));
+
+				emitter.addBehaviour(new Proton.Gravity(8));
+				emitter.addInitialize(new Proton.Life(2,3));
+				emitter.addBehaviour(new Proton.Scale(new Proton.Span(1, 3), 0.3));
+				emitter.addBehaviour(new Proton.Alpha(1, 0.5));
+				emitter.addBehaviour(new Proton.Rotate(0, Proton.getSpan(-8, 9), 'add'));
+				emitter.p.x = 1003 / 2;
+				emitter.p.y = 100;
+				emitter.emit();
 				proton.addEmitter(emitter);
+
+				emitter.addSelfBehaviour(new Proton.Gravity(5));
+				emitter.addSelfBehaviour(new Proton.RandomDrift(30, 30, .1));
+				emitter.addSelfBehaviour(new Proton.CrossZone(new Proton.RectZone(50, 0, 953, 610), 'bound'));
 			}
 
-			function mousedownHandler(e) {
-				_mousedown = true;
-				attractionBehavior.reset(mouseObj, 10, 1200);
-				mousemoveHandler(e);
-			}
+			function createRender() {
+				//var renderer = new Proton.Renderer('other', proton);
+				pixiRender = new PIXI.WebGLRenderer(1003, 610, {"clearBeforeRender": false, "preserveDrawingBuffer": true, "transparent": false});
+				document.getElementById('container').appendChild(pixiRender.view);
+				pixiStage = new PIXI.Container;
+				var bloom = new PIXI.filters.BloomFilter();
+				var blur = new PIXI.filters.BlurFilter();
+				bloom.blur = 10;
+				//blur.blur = 10;
+				bloom.passes = 2;
+				//pixiStage.filters = [ blur ];
+				var renderer = new Proton.Renderer('other', proton);
 
-			function mousemoveHandler(e) {
-				if (_mousedown) {
-					var _x, _y;
-					if (e.layerX || e.layerX == 0) {
-						_x = e.layerX;
-						_y = e.layerY;
-					} else if (e.offsetX || e.offsetX == 0) {
-						_x = e.offsetX;
-						_y = e.offsetY;
-					}
-
-					mouseObj.x = _x;
-					mouseObj.y = _y;
-				}
-			}
-
-			function mouseupHandler(e) {
-				_mousedown = false;
-				attractionBehavior.reset(mouseObj, 0, 0);
-			}
-
-			function createRenderer() {
-				renderer = new Proton.Renderer('other', proton);
 				renderer.onProtonUpdate = function() {
-					context.fillStyle = "rgba(0, 0, 0, 0.02)";
-					context.fillRect(0, 0, canvas.width, canvas.height);
+
+				};
+				renderer.onParticleCreated = function(particle) {
+    				var graphics = new PIXI.Graphics();
+    				particle.graphics = graphics;
+    				pixiStage.addChild(particle.graphics);
+    				graphics.moveTo(particle.p.x, particle.p.y);
+/*
+					var particleSprite = new PIXI.Sprite(particle.target);
+					particle.sprite = particleSprite;
+					pixiStage.addChild(particle.sprite);
+*/
 				};
 
 				renderer.onParticleUpdate = function(particle) {
-					context.beginPath();
-					context.strokeStyle = particle.color;
-					context.lineWidth = 1;
-					context.moveTo(particle.old.p.x, particle.old.p.y);
-					context.lineTo(particle.p.x, particle.p.y);
-					context.closePath();
-					context.stroke();
+// 					transformSprite(particle.sprite, particle);
+                    //particle.graphics.beginFill(0x90FF30);
+                    particle.graphics.clear();
+                    particle.graphics.lineStyle(1.5, 0x90FF30, 1);
+					//context.beginPath();
+					//context.strokeStyle = particle.color;
+					//context.lineWidth = 1;
+					//context.moveTo(particle.old.p.x, particle.old.p.y);
+					particle.graphics.lineTo(particle.p.x, particle.p.y);
+					//particle.graphics.endFill();
+					//context.lineTo(particle.p.x, particle.p.y);
+					//context.closePath();
+					//context.stroke();
 				};
 
+				renderer.onParticleDead = function(particle) {
+					pixiStage.removeChild(particle.graphics);
+				};
 				renderer.start();
+			}
+
+			function transformSprite(particleSprite, particle) {
+				particleSprite.position.x = particle.p.x;
+				particleSprite.position.y = particle.p.y;
+				particleSprite.scale.x = particle.scale;
+				particleSprite.scale.y = particle.scale;
+				particleSprite.anchor.x = 0.5;
+				particleSprite.anchor.y = 0.5;
+				particleSprite.alpha = particle.alpha;
+				particleSprite.rotation = particle.rotation*Math.PI/180;
 			}
 
 			function tick() {
 				requestAnimationFrame(tick);
 
-				//stats.begin();
+
 				proton.update();
-				//stats.end();
+				pixiRender.render(pixiStage);
+
 			}
 		</script>
